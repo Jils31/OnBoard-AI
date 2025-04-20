@@ -143,7 +143,7 @@ const AnalysisPage = () => {
         toast({
           title: "Analysis Complete",
           description: "All insights are ready to explore",
-          variant: "success"
+          variant: "default" // Changed from "success" to "default"
         });
         
         setIsLoading(false);
