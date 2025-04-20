@@ -350,7 +350,9 @@ export class GeminiService {
         "circularDependencies": [
           ["string (list of module names forming a circular dependency)"]
         ],
-        "recommendations": ["string (specific recommendations for improvement)"],
+        "recommendations": [
+          "string (specific recommendations for improvement)"
+        ],
         "bestPractices": {
           "followed": ["string (architectural best practices followed)"],
           "violations": ["string (architectural best practices violated)"]
@@ -865,4 +867,4 @@ const MyComponent = () => {
       4. Focus on helping new developers get up to speed quickly
       
       OUTPUT FORMAT:
-      Provide your documentation as a JSON object with
+      Provide your documentation
