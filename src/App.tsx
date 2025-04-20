@@ -8,6 +8,9 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NavBar from "./components/NavBar";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import Pricing from "./pages/Pricing";
+import History from "./pages/History";
 import AnalysisPage from "./pages/AnalysisPage";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -22,11 +25,16 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<><NavBar /><Index /></>} />
+            <Route path="/pricing" element={<><NavBar /><Pricing /></>} />
             <Route path="/auth" element={<Auth />} />
+            
             <Route element={<><NavBar /><ProtectedRoute /></>}>
-              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/history" element={<History />} />
               <Route path="/analysis" element={<AnalysisPage />} />
             </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
