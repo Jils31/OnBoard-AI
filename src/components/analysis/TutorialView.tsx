@@ -18,37 +18,67 @@ const TutorialView = ({ data, role }: TutorialViewProps) => {
   
   // Default tutorial data to handle when data is undefined or missing required properties
   const defaultTutorial = {
-    title: "Authentication Workflow",
-    overview: "This tutorial walks through the authentication flow in the application, covering login, session management, and protected routes.",
+    title: "Exploring the Codebase",
+    overview: "This tutorial provides an introduction to the repository structure and key components.",
     prerequisites: [
-      "Basic understanding of React hooks",
-      "Familiarity with context API",
-      "Understanding of JWT authentication"
+      "Basic understanding of the project's programming language",
+      "Familiarity with version control systems"
     ],
     steps: [
       {
-        title: "Setting up Authentication Context",
-        description: "First, we'll explore how the authentication context is set up to manage user state across the application. This provides a centralized way to handle authentication state.",
-        codeExample: `import React, { createContext, useReducer, useContext } from 'react';
-
-// Initial state for auth context
-const initialState = {
-  user: null,
-  isAuthenticated: false,
-  loading: true,
-  error: null
-};
-
-// Create the auth context
-export const AuthContext = createContext(initialState);`,
-        explanation: "This code establishes the authentication context using React's Context API and useReducer hook."
+        title: "Repository Overview",
+        description: "Let's start by understanding the overall structure of the repository and its main components.",
+        codeExample: `// Repository structure example
+src/
+  components/   # UI components
+  services/     # Services for API interactions
+  utils/        # Utility functions
+  pages/        # Application pages or views
+  styles/       # CSS or styling files`,
+        explanation: "Most modern codebases follow a structured organization pattern to separate concerns and make code more maintainable."
       }
     ],
-    additionalNotes: "This authentication flow follows best practices for React applications."
+    additionalNotes: "As you explore the codebase further, focus on understanding how data flows between components and which parts handle core business logic."
   };
   
-  // Use data if provided and valid, otherwise use default tutorial
-  const tutorial = data && data.title && data.steps && Array.isArray(data.steps) ? data : defaultTutorial;
+  // Safely parse the data and provide defaults if missing
+  const parsedData = (() => {
+    if (!data) return defaultTutorial;
+    
+    try {
+      // If data is already an object with the necessary structure, use it
+      if (data.title && Array.isArray(data.steps)) {
+        return data;
+      }
+      
+      // If data is a string (JSON), try to parse it
+      if (typeof data === 'string') {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.title && Array.isArray(parsed.steps)) {
+            return parsed;
+          }
+        } catch (e) {
+          console.error('Failed to parse tutorial data as JSON:', e);
+        }
+      }
+      
+      return defaultTutorial;
+    } catch (error) {
+      console.error('Error processing tutorial data:', error);
+      return defaultTutorial;
+    }
+  })();
+  
+  // Extract properties with safe fallbacks
+  const tutorial = {
+    title: parsedData.title || defaultTutorial.title,
+    overview: parsedData.overview || defaultTutorial.overview,
+    prerequisites: Array.isArray(parsedData.prerequisites) ? parsedData.prerequisites : defaultTutorial.prerequisites,
+    steps: Array.isArray(parsedData.steps) && parsedData.steps.length > 0 ? 
+      parsedData.steps : defaultTutorial.steps,
+    additionalNotes: parsedData.additionalNotes || defaultTutorial.additionalNotes
+  };
   
   const handleNextStep = () => {
     if (currentStep < tutorial.steps.length - 1) {
@@ -66,11 +96,6 @@ export const AuthContext = createContext(initialState);`,
     }
   };
   
-  // Make sure we have valid prerequisites array
-  const prerequisites = tutorial.prerequisites && Array.isArray(tutorial.prerequisites) 
-    ? tutorial.prerequisites 
-    : ["No prerequisites specified"];
-  
   return (
     <div className="space-y-6">
       <Card className="border-blue-100 dark:border-blue-900">
@@ -87,7 +112,7 @@ export const AuthContext = createContext(initialState);`,
             
             <h3 className="font-medium mt-4 mb-2">Prerequisites</h3>
             <ul className="list-disc pl-5 space-y-1">
-              {prerequisites.map((prereq, index) => (
+              {tutorial.prerequisites.map((prereq: string, index: number) => (
                 <li key={index} className="text-gray-700 dark:text-gray-300">{prereq}</li>
               ))}
             </ul>
@@ -101,7 +126,7 @@ export const AuthContext = createContext(initialState);`,
                 {currentStep + 1}
               </div>
               <div>
-                <h2 className="font-bold text-lg">{tutorial.steps[currentStep].title}</h2>
+                <h2 className="font-bold text-lg">{tutorial.steps[currentStep]?.title || 'Step'}</h2>
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
                   Step {currentStep + 1} of {tutorial.steps.length}
                 </p>
@@ -130,7 +155,7 @@ export const AuthContext = createContext(initialState);`,
           <div className="space-y-6">
             <div>
               <p className="mb-4 text-gray-700 dark:text-gray-300">
-                {tutorial.steps[currentStep].description}
+                {tutorial.steps[currentStep]?.description || ''}
               </p>
             </div>
             
@@ -139,7 +164,7 @@ export const AuthContext = createContext(initialState);`,
                 <div className="flex justify-between items-center">
                   <div className="font-medium">Code Example</div>
                   <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    {tutorial.steps[currentStep].title}
+                    {tutorial.steps[currentStep]?.title || 'Example'}
                   </Badge>
                 </div>
               </div>
@@ -149,7 +174,7 @@ export const AuthContext = createContext(initialState);`,
                 className="rounded-b-md max-h-96"
                 showLineNumbers
               >
-                {tutorial.steps[currentStep].codeExample}
+                {tutorial.steps[currentStep]?.codeExample || '// No code example available'}
               </SyntaxHighlighter>
             </div>
             
@@ -159,7 +184,7 @@ export const AuthContext = createContext(initialState);`,
                 <div>
                   <h3 className="font-medium mb-2 text-blue-700 dark:text-blue-300">Explanation</h3>
                   <p className="text-gray-700 dark:text-gray-300">
-                    {tutorial.steps[currentStep].explanation}
+                    {tutorial.steps[currentStep]?.explanation || 'No explanation available.'}
                   </p>
                 </div>
               </div>

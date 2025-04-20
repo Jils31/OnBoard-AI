@@ -32,6 +32,8 @@ export class GitHubService {
         let repo = match[2].replace(/\.git$/, "");
         // Remove any trailing slash
         repo = repo.replace(/\/$/, "");
+        // Remove any query parameters
+        repo = repo.split("?")[0];
         
         return { owner: match[1], repo };
       }
@@ -64,8 +66,9 @@ export class GitHubService {
 
   /**
    * Get repository structure (files and directories)
+   * Recursively retrieves the full directory structure
    */
-  async getRepositoryStructure(owner: string, repo: string, path: string = ""): Promise<any> {
+  async getRepositoryStructure(owner: string, repo: string, path: string = "", maxDepth: number = 3): Promise<any> {
     try {
       if (!this.octokit) throw new Error("GitHub client not initialized");
       
@@ -75,9 +78,48 @@ export class GitHubService {
         path,
       });
       
-      return Array.isArray(data) ? data : [data];
+      // If it's a single file, return it as an array for consistency
+      const contents = Array.isArray(data) ? data : [data];
+      
+      // For directories, recursively get their contents (up to maxDepth)
+      if (maxDepth > 0) {
+        const result = [];
+        
+        for (const item of contents) {
+          if (item.type === 'dir') {
+            try {
+              // Skip common directories we don't need to analyze deeply
+              if (['node_modules', '.git', 'dist', 'build', 'coverage'].includes(item.name)) {
+                result.push({
+                  ...item,
+                  children: [{ name: '...', path: `${item.path}/...`, type: 'summary' }]
+                });
+              } else {
+                // Recursively get the contents of this directory
+                const children = await this.getRepositoryStructure(
+                  owner, 
+                  repo, 
+                  item.path, 
+                  maxDepth - 1
+                );
+                result.push({ ...item, children });
+              }
+            } catch (err) {
+              // If there's an error getting the contents of this directory, just add it without children
+              result.push(item);
+            }
+          } else {
+            // For files, just add them as is
+            result.push(item);
+          }
+        }
+        
+        return result;
+      }
+      
+      return contents;
     } catch (error) {
-      console.error("Error getting repository structure:", error);
+      console.error(`Error getting repository structure for ${path}:`, error);
       throw error;
     }
   }
@@ -110,7 +152,7 @@ export class GitHubService {
   /**
    * Get commit history for a file
    */
-  async getFileCommitHistory(owner: string, repo: string, path: string): Promise<any> {
+  async getFileCommitHistory(owner: string, repo: string, path: string, maxCommits: number = 50): Promise<any> {
     try {
       if (!this.octokit) throw new Error("GitHub client not initialized");
       
@@ -118,6 +160,7 @@ export class GitHubService {
         owner,
         repo,
         path,
+        per_page: maxCommits
       });
       
       return data;
@@ -134,7 +177,7 @@ export class GitHubService {
     try {
       if (!this.octokit) throw new Error("GitHub client not initialized");
       
-      // Get recent commits
+      // Get recent commits (up to 100)
       const { data: commits } = await this.octokit.rest.repos.listCommits({
         owner,
         repo,
@@ -143,24 +186,53 @@ export class GitHubService {
       
       // Process commits to count file changes
       const fileChangeCount: Record<string, number> = {};
+      const commitPromises: Promise<any>[] = [];
       
-      for (const commit of commits) {
-        // Get the commit details including changed files
-        const { data: commitData } = await this.octokit.rest.repos.getCommit({
+      // To avoid rate limiting, we'll process only recent commits (max 30)
+      const recentCommits = commits.slice(0, 30);
+      
+      // For each commit, get the details including changed files
+      for (const commit of recentCommits) {
+        const commitPromise = this.octokit.rest.repos.getCommit({
           owner,
           repo,
           ref: commit.sha,
+        }).then(({ data }) => {
+          // Count each file change
+          data.files?.forEach(file => {
+            const filePath = file.filename;
+            fileChangeCount[filePath] = (fileChangeCount[filePath] || 0) + 1;
+          });
+        }).catch(err => {
+          console.error(`Error processing commit ${commit.sha}:`, err);
         });
         
-        // Count each file change
-        commitData.files?.forEach(file => {
-          const filePath = file.filename;
-          fileChangeCount[filePath] = (fileChangeCount[filePath] || 0) + 1;
-        });
+        commitPromises.push(commitPromise);
       }
       
+      // Wait for all commit processing to complete
+      await Promise.allSettled(commitPromises);
+      
+      // Filter out common files that are less interesting for analysis
+      const filteredFiles = Object.entries(fileChangeCount).filter(([filename]) => {
+        // Exclude common files like package-lock.json, yarn.lock, etc.
+        const excludePatterns = [
+          /package-lock\.json$/,
+          /yarn\.lock$/,
+          /\.gitignore$/,
+          /\.env$/,
+          /\.DS_Store$/,
+          /node_modules\//,
+          /dist\//,
+          /build\//,
+          /\.lock$/
+        ];
+        
+        return !excludePatterns.some(pattern => pattern.test(filename));
+      });
+      
       // Sort files by change count
-      const sortedFiles = Object.entries(fileChangeCount)
+      const sortedFiles = filteredFiles
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(([filename, count]) => ({ filename, count }));
@@ -168,6 +240,45 @@ export class GitHubService {
       return sortedFiles;
     } catch (error) {
       console.error("Error getting most changed files:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get repository contributors
+   */
+  async getRepositoryContributors(owner: string, repo: string): Promise<any> {
+    try {
+      if (!this.octokit) throw new Error("GitHub client not initialized");
+      
+      const { data } = await this.octokit.rest.repos.listContributors({
+        owner,
+        repo,
+        per_page: 10 // Limit to top contributors
+      });
+      
+      return data;
+    } catch (error) {
+      console.error("Error getting repository contributors:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get repository languages
+   */
+  async getRepositoryLanguages(owner: string, repo: string): Promise<any> {
+    try {
+      if (!this.octokit) throw new Error("GitHub client not initialized");
+      
+      const { data } = await this.octokit.rest.repos.listLanguages({
+        owner,
+        repo
+      });
+      
+      return data;
+    } catch (error) {
+      console.error("Error getting repository languages:", error);
       throw error;
     }
   }

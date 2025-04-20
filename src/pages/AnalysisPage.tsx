@@ -4,8 +4,6 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, FileCode, GitBranch, GitPullRequest } from "lucide-react";
 import { githubService } from "@/services/GitHubService";
 import { geminiService } from "@/services/GeminiService";
@@ -128,29 +126,7 @@ const AnalysisPage = () => {
     }
   }, [repoUrl, role]);
   
-  // For development purposes, simulate data if needed
-  useEffect(() => {
-    // This is just for development/demo, would be removed in production
-    if (process.env.NODE_ENV === "development" && repoUrl && isLoading) {
-      const timer = setTimeout(() => {
-        import("../mock/sampleAnalysisData").then((module) => {
-          setRepoInfo(module.sampleRepoInfo);
-          setAnalysisData(module.sampleAnalysisData);
-          setAnalysisProgress({
-            structure: true,
-            criticalPaths: true,
-            dependencies: true,
-            tutorials: true
-          });
-          setIsLoading(false);
-        }).catch(err => {
-          console.error("Error loading sample data:", err);
-        });
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [repoUrl, isLoading]);
+  // Remove the mock data loading for development
   
   if (isLoading) {
     return <LoadingState repo={repoUrl} progress={analysisProgress} />;
@@ -223,8 +199,8 @@ const AnalysisPage = () => {
               <ArchitectureMap data={analysisData.structureAnalysis} />
             ) : (
               <div className="space-y-4">
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-32 w-full" />
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
               </div>
             )}
           </TabsContent>
@@ -237,8 +213,8 @@ const AnalysisPage = () => {
               />
             ) : (
               <div className="space-y-4">
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-32 w-full" />
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
               </div>
             )}
           </TabsContent>
@@ -251,8 +227,8 @@ const AnalysisPage = () => {
               />
             ) : (
               <div className="space-y-4">
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-32 w-full" />
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
               </div>
             )}
           </TabsContent>
@@ -265,8 +241,8 @@ const AnalysisPage = () => {
               />
             ) : (
               <div className="space-y-4">
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-32 w-full" />
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
               </div>
             )}
           </TabsContent>

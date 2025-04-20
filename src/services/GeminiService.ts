@@ -15,31 +15,104 @@ export class GeminiService {
    */
   async analyzeRepositoryStructure(repoData: any): Promise<any> {
     const prompt = `
-      You are an expert software architecture analyst tasked with understanding a code repository.
-      Analyze the provided repository structure and information to:
-      1. Identify the overall architectural pattern and system design
-      2. Create a high-level architectural map showing how components interact
-      3. Highlight the most important modules, services, or components
-
-      Repository Information:
-      ${JSON.stringify(repoData, null, 2)}
+      You are an expert software architect tasked with analyzing a GitHub repository.
       
-      Provide your analysis in JSON format with the following structure:
+      CONTEXT:
+      - You have been provided with repository structure data, metadata, and commit history
+      - Your task is to identify the architecture patterns and create a system map
+      - Focus on how components interact with each other
+      - Consider the repository's language, main dependencies, and structure
+      
+      REPOSITORY INFORMATION:
+      ${JSON.stringify(repoData.repositoryInfo, null, 2)}
+      
+      REPOSITORY STRUCTURE:
+      ${JSON.stringify(repoData.structure, null, 2)}
+      
+      MOST FREQUENTLY CHANGED FILES:
+      ${JSON.stringify(repoData.mostChangedFiles, null, 2)}
+      
+      INSTRUCTIONS:
+      1. Analyze the provided data to identify the architectural pattern (MVC, MVVM, Clean Architecture, etc.)
+      2. Create a high-level architectural map showing how components interact
+      3. Identify the most important modules, services, or components
+      4. Provide strengths and potential improvements of the architecture
+      
+      OUTPUT FORMAT:
+      Provide your analysis as a JSON object with the following structure:
       {
         "architecture": {
-          "pattern": "string",
-          "description": "string",
-          "mainComponents": []
+          "pattern": "string (name of the architectural pattern)",
+          "description": "string (detailed description of the architecture)",
+          "mainComponents": ["string (list of main components)"]
         },
         "systemMap": {
-          "nodes": [],
-          "connections": []
+          "nodes": [
+            {
+              "id": "string (unique identifier)",
+              "label": "string (display name)",
+              "type": "string (component type: container, service, database, etc.)",
+              "parent": "string (optional parent node id)"
+            }
+          ],
+          "connections": [
+            {
+              "from": "string (source node id)",
+              "to": "string (target node id)",
+              "label": "string (relationship description)"
+            }
+          ]
         },
-        "criticalComponents": []
+        "criticalComponents": ["string (list of most important components)"],
+        "strengths": ["string (list of architectural strengths)"],
+        "improvements": ["string (list of potential improvements)"]
       }
+      
+      Be accurate, detailed, and comprehensive in your analysis. Do not include any explanations outside of the JSON structure.
     `;
 
-    return this.generateContent(prompt);
+    try {
+      const result = await this.generateContent(prompt);
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        
+        // Try to extract JSON from the text (could be surrounded by markdown code blocks)
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return JSON.parse(text); // Try parsing the whole text as JSON
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          return JSON.parse(text);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in analyzeRepositoryStructure:", error);
+      // Return a basic structure to prevent UI failures
+      return {
+        architecture: {
+          pattern: "Unknown",
+          description: "Analysis could not be completed",
+          mainComponents: []
+        },
+        systemMap: {
+          nodes: [],
+          connections: []
+        },
+        criticalComponents: []
+      };
+    }
   }
 
   /**
@@ -47,33 +120,98 @@ export class GeminiService {
    */
   async identifyCriticalCodePaths(codeData: any): Promise<any> {
     const prompt = `
-      You are an expert code analyst tasked with identifying the most important code paths in a repository.
-      Analyze the provided code data, which includes git history, file structure, and code samples to:
-      1. Identify the 20% of code that implements 80% of core functionality
-      2. Determine the most frequently changed or updated files (based on git history)
-      3. Map the main data flow through the application
-      4. Identify key business logic components
+      You are an expert code analyst specializing in repository onboarding.
       
-      Code Data:
-      ${JSON.stringify(codeData, null, 2)}
+      CONTEXT:
+      - You're helping a ${codeData.role} developer understand the most important parts of a codebase
+      - You have git history data showing which files change most frequently
+      - You have sample file contents of the most important files
+      - You have code analysis data showing dependencies and patterns
       
-      Provide your analysis in JSON format with the following structure:
+      TASK:
+      Analyze the repository to identify:
+      1. Critical code paths (the 20% of code that provides 80% of core functionality)
+      2. Key business logic components
+      3. Data flow patterns through the application
+      4. Most frequently modified files (based on git history)
+      
+      CODE DATA:
+      Most Frequently Changed Files:
+      ${JSON.stringify(codeData.mostChangedFiles, null, 2)}
+      
+      File Contents (truncated for key files):
+      ${JSON.stringify(codeData.fileContents.map((file: any) => ({ 
+        path: file.path, 
+        snippet: file.content.substring(0, 500) + '...',
+        changeFrequency: file.changeFrequency
+      })), null, 2)}
+      
+      Code Analysis:
+      ${JSON.stringify(codeData.codeAnalysis, null, 2)}
+      
+      OUTPUT FORMAT:
+      Respond with a detailed JSON object containing:
       {
         "criticalPaths": [
           {
-            "name": "string",
-            "description": "string",
-            "files": [],
-            "importance": "number (1-10)",
-            "dataFlow": []
+            "name": "string (name of critical path, e.g. 'Authentication Flow')",
+            "description": "string (description of the flow's purpose)",
+            "importance": number (1-10 rating of how important this is to understand),
+            "files": ["string (list of relevant files)"],
+            "dataFlow": ["string (step by step description of data flow)"]
           }
         ],
-        "frequentlyChangedFiles": [],
-        "keyBusinessLogic": []
+        "frequentlyChangedFiles": [
+          {
+            "filename": "string (file path)",
+            "count": number (change frequency),
+            "significance": "string (why this file changes often)",
+            "recommendation": "string (what to know about this file)"
+          }
+        ],
+        "keyBusinessLogic": ["string (list of key business logic areas)"],
+        "entryPoints": ["string (list of main entry points to the codebase)"]
       }
+      
+      Focus on identifying patterns that a ${codeData.role} developer would find most relevant. Be specific, practical, and thorough.
+      Return ONLY the JSON object described above with no additional text or explanation.
     `;
 
-    return this.generateContent(prompt);
+    try {
+      const result = await this.generateContent(prompt);
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        
+        // Try to extract JSON from the text (could be surrounded by markdown code blocks)
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return JSON.parse(text); // Try parsing the whole text as JSON
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          return JSON.parse(text);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in identifyCriticalCodePaths:", error);
+      // Return a basic structure to prevent UI failures
+      return {
+        criticalPaths: [],
+        frequentlyChangedFiles: [],
+        keyBusinessLogic: []
+      };
+    }
   }
 
   /**
@@ -81,27 +219,90 @@ export class GeminiService {
    */
   async generateDependencyGraph(dependencies: any): Promise<any> {
     const prompt = `
-      You are an expert in software dependency analysis.
-      Analyze the provided dependency information to:
-      1. Create a comprehensive dependency graph
-      2. Identify circular dependencies or potential issues
-      3. Suggest improvements to the dependency structure
+      You are an expert in software dependency analysis with deep knowledge of code architecture.
       
-      Dependency Information:
+      CONTEXT:
+      - You're analyzing a codebase to help new developers understand dependencies
+      - The goal is to create a comprehensive dependency graph showing how modules relate
+      - You need to identify any problematic patterns like circular dependencies
+      - You should provide recommendations for improving the dependency structure
+      
+      DEPENDENCY INFORMATION:
       ${JSON.stringify(dependencies, null, 2)}
       
-      Provide your analysis in JSON format with the following structure:
+      INSTRUCTIONS:
+      1. Create a comprehensive dependency graph based on the provided data
+      2. Identify circular dependencies or other problematic patterns
+      3. Analyze the dependency structure for architectural issues
+      4. Provide specific recommendations for improving code organization
+      
+      OUTPUT FORMAT:
+      Provide your analysis as a JSON object with the following structure:
       {
         "dependencyGraph": {
-          "nodes": [],
-          "edges": []
+          "nodes": [
+            {
+              "id": "string (unique identifier)",
+              "label": "string (display name)",
+              "type": "string (node type: component, service, utility, etc.)"
+            }
+          ],
+          "edges": [
+            {
+              "source": "string (source node id)",
+              "target": "string (target node id)",
+              "type": "string (dependency type: imports, uses, extends, etc.)"
+            }
+          ]
         },
-        "circularDependencies": [],
-        "recommendations": []
+        "circularDependencies": [
+          ["string (list of module names forming a circular dependency)"]
+        ],
+        "recommendations": ["string (specific recommendations for improvement)"]
       }
+      
+      Ensure your analysis is precise, actionable, and focused on architectural quality.
+      Return ONLY valid JSON conforming to the structure specified above.
     `;
 
-    return this.generateContent(prompt);
+    try {
+      const result = await this.generateContent(prompt);
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        
+        // Try to extract JSON from the text (could be surrounded by markdown code blocks)
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return JSON.parse(text); // Try parsing the whole text as JSON
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          return JSON.parse(text);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in generateDependencyGraph:", error);
+      // Return a basic structure to prevent UI failures
+      return {
+        dependencyGraph: {
+          nodes: [],
+          edges: []
+        },
+        circularDependencies: [],
+        recommendations: []
+      };
+    }
   }
 
   /**
@@ -110,32 +311,92 @@ export class GeminiService {
   async createTutorial(workflow: any): Promise<any> {
     const prompt = `
       You are an expert technical writer creating an interactive tutorial for developers.
-      Based on the provided workflow information, create a step-by-step tutorial that:
-      1. Explains each step clearly with code examples
-      2. Highlights important concepts and patterns
-      3. Provides context for why certain approaches are taken
       
-      Workflow Information:
-      ${JSON.stringify(workflow, null, 2)}
+      CONTEXT:
+      - You're creating a step-by-step tutorial for a ${workflow.role} developer
+      - The tutorial should explain critical workflows in the codebase
+      - The developer is new to this codebase and needs clear, practical guidance
+      - Focus on the most important coding patterns they need to understand
       
-      Provide your tutorial in JSON format with the following structure:
+      REPOSITORY INFO:
+      ${JSON.stringify(workflow.repositoryInfo, null, 2)}
+      
+      CRITICAL PATHS:
+      ${JSON.stringify(workflow.criticalPaths, null, 2)}
+      
+      INSTRUCTIONS:
+      1. Create a comprehensive tutorial focusing on ONE critical workflow in the codebase
+      2. The tutorial should walk through the workflow step by step
+      3. Include code examples that illustrate each step
+      4. Explain key concepts, patterns, and decisions
+      5. Make the tutorial interactive with clear explanations
+      
+      OUTPUT FORMAT:
+      Provide your tutorial as a JSON object with the following structure:
       {
-        "title": "string",
-        "overview": "string",
-        "prerequisites": [],
+        "title": "string (name of the tutorial)",
+        "overview": "string (what the tutorial covers and why it matters)",
+        "prerequisites": ["string (skills or knowledge needed)"],
         "steps": [
           {
-            "title": "string",
-            "description": "string",
-            "codeExample": "string",
-            "explanation": "string"
+            "title": "string (step title)",
+            "description": "string (detailed explanation)",
+            "codeExample": "string (relevant code snippet)",
+            "explanation": "string (explanation of the code and concepts)"
           }
         ],
-        "additionalNotes": "string"
+        "additionalNotes": "string (important things to remember)"
       }
+      
+      Make your tutorial practical, focused, and tailored to a ${workflow.role} developer.
+      Ensure all code examples are clear and well-commented. Focus on teaching patterns, not just syntax.
+      Return ONLY valid JSON conforming to the structure above without additional text.
     `;
 
-    return this.generateContent(prompt);
+    try {
+      const result = await this.generateContent(prompt);
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        
+        // Try to extract JSON from the text (could be surrounded by markdown code blocks)
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return JSON.parse(text); // Try parsing the whole text as JSON
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          return JSON.parse(text);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in createTutorial:", error);
+      // Return a basic structure to prevent UI failures
+      return {
+        title: "Getting Started",
+        overview: "An introduction to the codebase",
+        prerequisites: ["Basic programming knowledge"],
+        steps: [
+          {
+            title: "Understanding the Project Structure",
+            description: "First, let's explore the project structure to get oriented.",
+            codeExample: "// Project structure example\n// src/ - Contains source code\n// docs/ - Contains documentation",
+            explanation: "The project follows a standard structure with source code in the src directory."
+          }
+        ],
+        additionalNotes: "This is a fallback tutorial. Please try again or check the repository manually."
+      };
+    }
   }
 
   /**
@@ -161,7 +422,8 @@ export class GeminiService {
             temperature: 0.2,
             topK: 32,
             topP: 0.95,
-            maxOutputTokens: 8192
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json"
           }
         }),
       });
