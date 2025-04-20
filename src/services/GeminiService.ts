@@ -875,4 +875,4 @@ const MyComponent = () => {
       CONTEXT:
       - You're creating documentation for developers who are new to this codebase
       - The documentation should be comprehensive yet concise
-      - Focus on making it easy to understand the
+      - Focus on making it easy
