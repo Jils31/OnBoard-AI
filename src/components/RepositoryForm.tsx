@@ -6,29 +6,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { githubService } from "@/services/GitHubService";
 
 const RepositoryForm = () => {
   const [repoUrl, setRepoUrl] = useState("");
   const [role, setRole] = useState("full-stack");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repoUrl) return;
+    if (!repoUrl) {
+      toast({
+        title: "Missing Repository URL",
+        description: "Please enter a valid GitHub repository URL.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsAnalyzing(true);
     
     try {
-      // This would be replaced with actual repository validation and analysis
-      // For now, we'll just simulate the process and navigate to results
-      setTimeout(() => {
-        const encodedUrl = encodeURIComponent(repoUrl);
-        navigate(`/analysis?repo=${encodedUrl}&role=${role}`);
-      }, 1000);
+      // Validate the repository URL
+      const parsedRepo = githubService.parseRepoUrl(repoUrl);
+      if (!parsedRepo) {
+        throw new Error("Invalid GitHub repository URL");
+      }
+      
+      const { owner, repo } = parsedRepo;
+      
+      // Quick validation check by fetching repo info
+      await githubService.getRepositoryInfo(owner, repo);
+      
+      toast({
+        title: "Repository Validated",
+        description: `Starting analysis for ${owner}/${repo}...`,
+      });
+      
+      // Navigate to the analysis page
+      const encodedUrl = encodeURIComponent(repoUrl);
+      navigate(`/analysis?repo=${encodedUrl}&role=${role}`);
+      
     } catch (error) {
-      console.error("Error analyzing repository:", error);
+      console.error("Error validating repository:", error);
       setIsAnalyzing(false);
+      
+      toast({
+        title: "Repository Error",
+        description: error instanceof Error ? error.message : "Failed to validate repository URL",
+        variant: "destructive"
+      });
     }
   };
   
@@ -89,7 +119,7 @@ const RepositoryForm = () => {
         className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
         disabled={!repoUrl || isAnalyzing}
       >
-        {isAnalyzing ? "Analyzing..." : "Analyze Repository"}
+        {isAnalyzing ? "Validating Repository..." : "Analyze Repository"}
       </Button>
     </form>
   );

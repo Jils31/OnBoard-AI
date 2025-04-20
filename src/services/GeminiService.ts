@@ -14,6 +14,8 @@ export class GeminiService {
    * Analyzes a repository structure using Gemini
    */
   async analyzeRepositoryStructure(repoData: any): Promise<any> {
+    console.log("Analyzing repository structure with data:", repoData);
+    
     const prompt = `
       You are an expert software architect tasked with analyzing a GitHub repository.
       
@@ -72,11 +74,14 @@ export class GeminiService {
     `;
 
     try {
+      console.log("Sending structure analysis request to Gemini");
       const result = await this.generateContent(prompt);
+      console.log("Received structure analysis response:", result);
       
       // Parse the JSON from the text response
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw Gemini text response:", text);
         
         // Try to extract JSON from the text (could be surrounded by markdown code blocks)
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -139,6 +144,8 @@ export class GeminiService {
    * Identifies critical code paths using Gemini
    */
   async identifyCriticalCodePaths(codeData: any): Promise<any> {
+    console.log("Identifying critical code paths with data:", codeData);
+    
     const fileContents = codeData.fileContents || [];
     const fileContentSamples = fileContents.map((file: any) => ({
       path: file.path,
@@ -197,11 +204,14 @@ export class GeminiService {
     `;
 
     try {
+      console.log("Sending critical paths analysis request to Gemini");
       const result = await this.generateContent(prompt);
+      console.log("Received critical paths analysis response");
       
       // Parse the JSON from the text response
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw critical paths response:", text.substring(0, 200) + "...");
         
         // Try to extract JSON from the text
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -271,6 +281,8 @@ export class GeminiService {
    * Generates dependency graphs using Gemini
    */
   async generateDependencyGraph(dependencies: any): Promise<any> {
+    console.log("Generating dependency graph with data:", dependencies);
+    
     const prompt = `
       You are an expert in software dependency analysis with deep knowledge of code architecture.
       
@@ -318,11 +330,14 @@ export class GeminiService {
     `;
 
     try {
+      console.log("Sending dependency graph request to Gemini");
       const result = await this.generateContent(prompt);
+      console.log("Received dependency graph response");
       
       // Parse the JSON from the text response
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw dependency graph response:", text.substring(0, 200) + "...");
         
         // Try to extract JSON from the text
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -385,6 +400,8 @@ export class GeminiService {
    * Creates interactive tutorials using Gemini
    */
   async createTutorial(workflow: any): Promise<any> {
+    console.log("Creating tutorial with data:", workflow);
+    
     const prompt = `
       You are an expert technical writer creating an interactive tutorial for developers.
       
@@ -430,11 +447,14 @@ export class GeminiService {
     `;
 
     try {
+      console.log("Sending tutorial creation request to Gemini");
       const result = await this.generateContent(prompt);
+      console.log("Received tutorial creation response");
       
       // Parse the JSON from the text response
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw tutorial response:", text.substring(0, 200) + "...");
         
         // Try to extract JSON from the text
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -519,6 +539,7 @@ const MyComponent = () => {
     const url = `${this.baseUrl}?key=${this.apiKey}`;
     
     try {
+      console.log("Calling Gemini API");
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -543,7 +564,8 @@ const MyComponent = () => {
 
       if (!response.ok) {
         console.error(`API request failed with status ${response.status}`);
-        console.error(`Response: ${await response.text()}`);
+        const responseText = await response.text();
+        console.error(`Response: ${responseText}`);
         throw new Error(`API request failed with status ${response.status}`);
       }
 
@@ -556,5 +578,5 @@ const MyComponent = () => {
   }
 }
 
-// Create and export a singleton instance
+// Create and export a singleton instance with the API key
 export const geminiService = new GeminiService('AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');

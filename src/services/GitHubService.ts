@@ -138,7 +138,7 @@ export class GitHubService {
       });
       
       if ('content' in data && 'encoding' in data) {
-        // Use atob to decode base64 content instead of Buffer
+        // Use atob to decode base64 content
         if (data.encoding === 'base64') {
           return atob(data.content.replace(/\n/g, ''));
         }

@@ -37,6 +37,9 @@ const AnalysisPage = () => {
       try {
         setIsLoading(true);
         setError(null);
+        setAnalysisData(null); // Reset any previous analysis data
+        
+        console.log("Starting repository analysis for:", repoUrl);
         
         // Parse repository URL
         const parsedRepo = githubService.parseRepoUrl(repoUrl);
@@ -45,6 +48,7 @@ const AnalysisPage = () => {
         }
         
         const { owner, repo } = parsedRepo;
+        console.log(`Parsed repo: ${owner}/${repo}`);
         
         toast({
           title: "Analysis Started",
@@ -52,21 +56,29 @@ const AnalysisPage = () => {
         });
         
         // 1. Get repository information
+        console.log("Fetching repository information...");
         const repoInfo = await githubService.getRepositoryInfo(owner, repo);
         setRepoInfo(repoInfo);
+        console.log("Repository info fetched:", repoInfo.name);
         
         // 2. Get repository structure
+        console.log("Fetching repository structure...");
         const repoStructure = await githubService.getRepositoryStructure(owner, repo);
+        console.log("Repository structure fetched");
         
         // 3. Get most changed files
+        console.log("Fetching most changed files...");
         const mostChangedFiles = await githubService.getMostChangedFiles(owner, repo, 10);
+        console.log("Most changed files fetched:", mostChangedFiles.length);
         
         // 4. Analyze repository structure
+        console.log("Analyzing repository structure with AI...");
         const structureAnalysis = await geminiService.analyzeRepositoryStructure({
           repositoryInfo: repoInfo,
           structure: repoStructure,
           mostChangedFiles: mostChangedFiles
         });
+        console.log("Structure analysis complete");
         setAnalysisProgress(prev => ({ ...prev, structure: true }));
         
         toast({
@@ -75,9 +87,11 @@ const AnalysisPage = () => {
         });
         
         // 5. Get file contents for selected files (based on most changed files)
+        console.log("Fetching file contents...");
         const fileContents = [];
         for (const file of mostChangedFiles.slice(0, 5)) {
           try {
+            console.log(`Fetching content for ${file.filename}...`);
             const content = await githubService.getFileContent(owner, repo, file.filename);
             fileContents.push({
               path: file.filename,
@@ -88,22 +102,27 @@ const AnalysisPage = () => {
             console.error(`Error fetching content for ${file.filename}:`, err);
           }
         }
+        console.log(`Fetched contents for ${fileContents.length} files`);
         
         // 6. Analyze code structure
+        console.log("Analyzing code structure...");
         let codeAnalysis = { dependencies: [] };
         try {
           codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
+          console.log("Code analysis complete");
         } catch (err) {
           console.error("Error in code analysis:", err);
         }
         
         // 7. Identify critical code paths
+        console.log("Identifying critical code paths...");
         const criticalPathsAnalysis = await geminiService.identifyCriticalCodePaths({
           mostChangedFiles,
           fileContents,
           codeAnalysis,
           role
         });
+        console.log("Critical paths identified");
         setAnalysisProgress(prev => ({ ...prev, criticalPaths: true }));
         
         toast({
@@ -112,10 +131,12 @@ const AnalysisPage = () => {
         });
         
         // 8. Generate dependency graph
+        console.log("Generating dependency graph...");
         const dependencyGraphAnalysis = await geminiService.generateDependencyGraph({
           codeAnalysis: codeAnalysis.dependencies,
           repositoryStructure: repoStructure
         });
+        console.log("Dependency graph generated");
         setAnalysisProgress(prev => ({ ...prev, dependencies: true }));
         
         toast({
@@ -124,21 +145,26 @@ const AnalysisPage = () => {
         });
         
         // 9. Create tutorials based on critical paths
+        console.log("Creating tutorials...");
         const tutorialsAnalysis = await geminiService.createTutorial({
           criticalPaths: criticalPathsAnalysis.criticalPaths,
           repositoryInfo: repoInfo,
           role
         });
+        console.log("Tutorials created");
         setAnalysisProgress(prev => ({ ...prev, tutorials: true }));
         
         // Combine all analysis results
-        setAnalysisData({
+        const finalAnalysisData = {
           structureAnalysis,
           criticalPathsAnalysis,
           dependencyGraphAnalysis,
           tutorialsAnalysis,
           codeAnalysis
-        });
+        };
+        
+        console.log("Setting final analysis data:", finalAnalysisData);
+        setAnalysisData(finalAnalysisData);
         
         toast({
           title: "Analysis Complete",

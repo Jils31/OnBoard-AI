@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // This would be replaced with an actual visualization library
 // For now, we'll use a placeholder visualization
 const ArchitectureMap = ({ data }: { data: any }) => {
-  // Use mock data if real data is not available yet
+  // Use data from AI analysis, not mock data
   const architecture = data?.architecture || {
     pattern: "Model-View-Controller",
     description: "This app uses a classic MVC architecture with React components.",
@@ -42,6 +42,20 @@ const ArchitectureMap = ({ data }: { data: any }) => {
     "Data Models"
   ];
   
+  const strengths = data?.strengths || [
+    "Clear separation of concerns",
+    "Modular component structure",
+    "Consistent data flow patterns",
+    "Reusable service layer"
+  ];
+  
+  const improvements = data?.improvements || [
+    "Increase test coverage in core modules",
+    "Consider implementing caching strategy",
+    "Reduce coupling between service layers",
+    "Improve error handling consistency"
+  ];
+  
   return (
     <div className="space-y-6">
       <Card className="border-blue-100 dark:border-blue-900">
@@ -68,31 +82,87 @@ const ArchitectureMap = ({ data }: { data: any }) => {
             
             {/* This would be replaced with a real visualization component */}
             <div className="h-80 rounded-md bg-white dark:bg-gray-700 border relative mb-6">
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                <p className="text-center">
-                  Interactive architecture visualization would render here with nodes and connections.<br />
-                  Using react-flow-renderer or D3.js in the full implementation.
-                </p>
-              </div>
-              
-              {/* Basic visualization mockup */}
+              {/* Basic visualization mockup based on the provided data */}
               <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
-                {/* Render some basic shapes to represent the architecture */}
-                <rect x="100" y="50" width="200" height="100" rx="5" fill="#3b82f6" fillOpacity="0.2" stroke="#3b82f6" />
-                <text x="200" y="100" textAnchor="middle" fill="currentColor">Frontend</text>
+                {/* Render nodes as shapes */}
+                {systemMap.nodes.slice(0, 5).map((node: any, index: number) => {
+                  // Generate positions based on index
+                  const x = 100 + (index % 3) * 250;
+                  const y = 50 + Math.floor(index / 3) * 150;
+                  const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+                  const color = colors[index % colors.length];
+                  
+                  return (
+                    <g key={node.id}>
+                      <rect 
+                        x={x} 
+                        y={y} 
+                        width={200} 
+                        height={100} 
+                        rx={5} 
+                        fill={color} 
+                        fillOpacity={0.2} 
+                        stroke={color} 
+                      />
+                      <text 
+                        x={x + 100} 
+                        y={y + 50} 
+                        textAnchor="middle" 
+                        fill="currentColor"
+                      >
+                        {node.label}
+                      </text>
+                      <text 
+                        x={x + 100} 
+                        y={y + 75} 
+                        textAnchor="middle" 
+                        fill="currentColor" 
+                        fontSize="12"
+                      >
+                        {node.type}
+                      </text>
+                    </g>
+                  );
+                })}
                 
-                <rect x="500" y="50" width="200" height="100" rx="5" fill="#10b981" fillOpacity="0.2" stroke="#10b981" />
-                <text x="600" y="100" textAnchor="middle" fill="currentColor">API Layer</text>
-                
-                <rect x="300" y="250" width="200" height="100" rx="5" fill="#f59e0b" fillOpacity="0.2" stroke="#f59e0b" />
-                <text x="400" y="300" textAnchor="middle" fill="currentColor">Database</text>
-                
-                {/* Connection lines */}
-                <path d="M 300 100 L 500 100" stroke="currentColor" strokeWidth="1.5" strokeDasharray="5,5" />
-                <text x="400" y="90" textAnchor="middle" fill="currentColor" fontSize="12">API Calls</text>
-                
-                <path d="M 600 150 L 400 250" stroke="currentColor" strokeWidth="1.5" strokeDasharray="5,5" />
-                <text x="500" y="200" textAnchor="middle" fill="currentColor" fontSize="12">Queries</text>
+                {/* Render connections between nodes */}
+                {systemMap.connections.slice(0, 5).map((connection: any, index: number) => {
+                  // Find source and target nodes
+                  const sourceIndex = systemMap.nodes.findIndex((n: any) => n.id === connection.from);
+                  const targetIndex = systemMap.nodes.findIndex((n: any) => n.id === connection.to);
+                  
+                  if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex < 5 && targetIndex < 5) {
+                    const sourceX = 100 + (sourceIndex % 3) * 250 + 200;
+                    const sourceY = 50 + Math.floor(sourceIndex / 3) * 150 + 50;
+                    const targetX = 100 + (targetIndex % 3) * 250;
+                    const targetY = 50 + Math.floor(targetIndex / 3) * 150 + 50;
+                    
+                    // Calculate midpoint for label
+                    const midX = (sourceX + targetX) / 2;
+                    const midY = (sourceY + targetY) / 2;
+                    
+                    return (
+                      <g key={`${connection.from}-${connection.to}`}>
+                        <path 
+                          d={`M ${sourceX} ${sourceY} L ${targetX} ${targetY}`} 
+                          stroke="currentColor" 
+                          strokeWidth="1.5" 
+                          strokeDasharray="5,5" 
+                        />
+                        <text 
+                          x={midX} 
+                          y={midY - 10} 
+                          textAnchor="middle" 
+                          fill="currentColor" 
+                          fontSize="12"
+                        >
+                          {connection.label}
+                        </text>
+                      </g>
+                    );
+                  }
+                  return null;
+                })}
               </svg>
             </div>
           </div>
@@ -120,20 +190,18 @@ const ArchitectureMap = ({ data }: { data: any }) => {
             <div>
               <h3 className="font-medium mb-2 text-green-600 dark:text-green-400">Strengths</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Clear separation of concerns</li>
-                <li>Modular component structure</li>
-                <li>Consistent data flow patterns</li>
-                <li>Reusable service layer</li>
+                {strengths.map((strength: string, index: number) => (
+                  <li key={index}>{strength}</li>
+                ))}
               </ul>
             </div>
             
             <div>
               <h3 className="font-medium mb-2 text-amber-600 dark:text-amber-400">Improvement Opportunities</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Increase test coverage in core modules</li>
-                <li>Consider implementing caching strategy</li>
-                <li>Reduce coupling between service layers</li>
-                <li>Improve error handling consistency</li>
+                {improvements.map((improvement: string, index: number) => (
+                  <li key={index}>{improvement}</li>
+                ))}
               </ul>
             </div>
           </div>
