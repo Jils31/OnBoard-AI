@@ -1,4 +1,3 @@
-
 /**
  * Service for analyzing code using Abstract Syntax Trees
  */
@@ -13,7 +12,8 @@ export class CodeAnalysisService {
       modules: [],
       dependencies: [],
       patterns: [],
-      complexity: {}
+      complexity: {},
+      ast: {} // New field to store AST data
     };
 
     try {
@@ -37,6 +37,11 @@ export class CodeAnalysisService {
         results.dependencies = [...results.dependencies, ...languageResults.dependencies];
         results.patterns = [...results.patterns, ...languageResults.patterns];
         results.complexity = { ...results.complexity, ...languageResults.complexity };
+        
+        // Merge AST data
+        if (languageResults.ast) {
+          results.ast[language] = languageResults.ast;
+        }
       }
       
       return results;
@@ -94,7 +99,8 @@ export class CodeAnalysisService {
       modules: [],
       dependencies: [],
       patterns: [],
-      complexity: {}
+      complexity: {},
+      ast: {} // Add AST field to results
     };
     
     for (const file of files) {
@@ -107,6 +113,12 @@ export class CodeAnalysisService {
         
         // Calculate complexity metrics
         const complexity = this.calculateComplexity(file.content);
+        
+        // Generate simplified AST
+        const ast = this.generateSimplifiedAST(language, file.content, file.path);
+        if (ast) {
+          results.ast[file.path] = ast;
+        }
         
         // Add to results
         results.modules.push({
@@ -251,6 +263,99 @@ export class CodeAnalysisService {
         loops: 0,
         cognitiveComplexity: 0
       };
+    }
+  }
+
+  /**
+   * Generate a simplified AST for visualization
+   */
+  private generateSimplifiedAST(language: string, content: string, filePath: string): any {
+    try {
+      // This is a simplified representation - a real implementation would use a proper parser
+      const ast: any = {
+        type: 'Program',
+        path: filePath,
+        children: []
+      };
+
+      if (language === 'javascript' || language === 'typescript') {
+        // Very simplified AST generation - in practice would use a real parser
+        
+        // Look for imports
+        const importMatches = content.match(/import\s+(?:{[^}]+}|\*\s+as\s+\w+|\w+)\s+from\s+['"][^'"]+['"]/g) || [];
+        if (importMatches.length > 0) {
+          const importsNode = {
+            type: 'ImportDeclarations',
+            count: importMatches.length,
+            children: importMatches.map(imp => ({
+              type: 'ImportDeclaration',
+              value: imp.trim()
+            }))
+          };
+          ast.children.push(importsNode);
+        }
+        
+        // Look for class declarations
+        const classMatches = content.match(/class\s+(\w+)(?:\s+extends\s+(\w+))?\s*{/g) || [];
+        classMatches.forEach(match => {
+          const className = match.match(/class\s+(\w+)/) ? match.match(/class\s+(\w+)/)![1] : 'Unknown';
+          const parentClass = match.match(/extends\s+(\w+)/) ? match.match(/extends\s+(\w+)/)![1] : null;
+          
+          ast.children.push({
+            type: 'ClassDeclaration',
+            name: className,
+            extends: parentClass,
+            // In a real implementation, we would parse the class body here
+          });
+        });
+        
+        // Look for function declarations
+        const functionMatches = content.match(/function\s+\w+\s*\([^)]*\)\s*{/g) || [];
+        if (functionMatches.length > 0) {
+          ast.children.push({
+            type: 'FunctionDeclarations',
+            count: functionMatches.length,
+            children: functionMatches.map(fn => {
+              const fnName = fn.match(/function\s+(\w+)/) ? fn.match(/function\s+(\w+)/)![1] : 'anonymous';
+              return {
+                type: 'FunctionDeclaration',
+                name: fnName
+              };
+            })
+          });
+        }
+        
+        // Look for arrow functions (simplified)
+        const arrowFnMatches = content.match(/const\s+(\w+)\s*=\s*(?:\([^)]*\)|[^=]+)?\s*=>/g) || [];
+        if (arrowFnMatches.length > 0) {
+          ast.children.push({
+            type: 'ArrowFunctionDeclarations',
+            count: arrowFnMatches.length,
+            children: arrowFnMatches.map(fn => {
+              const fnName = fn.match(/const\s+(\w+)/) ? fn.match(/const\s+(\w+)/)![1] : 'anonymous';
+              return {
+                type: 'ArrowFunctionDeclaration',
+                name: fnName
+              };
+            })
+          });
+        }
+        
+        // Look for React components (very simplified detection)
+        if (content.includes('React') && (content.includes('function') && content.includes('return (') || 
+            content.includes('class') && content.includes('render()'))) {
+          const componentName = filePath.split('/').pop()?.replace(/\.(jsx|tsx|js|ts)$/, '') || 'UnknownComponent';
+          ast.children.push({
+            type: 'ReactComponent',
+            name: componentName
+          });
+        }
+      }
+      
+      return ast;
+    } catch (error) {
+      console.error(`Error generating AST for ${filePath}:`, error);
+      return null;
     }
   }
 

@@ -12,8 +12,11 @@ import ArchitectureMap from "@/components/analysis/ArchitectureMap";
 import CriticalPathsView from "@/components/analysis/CriticalPathsView";
 import DependencyGraph from "@/components/analysis/DependencyGraph";
 import TutorialView from "@/components/analysis/TutorialView";
+import ASTViewer from "@/components/analysis/ASTViewer";
+import CodebaseChatView from "@/components/analysis/CodebaseChatView";
+import DocumentationView from "@/components/analysis/DocumentationView";
 import LoadingState from "@/components/LoadingState";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
@@ -29,7 +32,8 @@ const AnalysisPage = () => {
     structure: false,
     criticalPaths: false,
     dependencies: false,
-    tutorials: false
+    tutorials: false,
+    ast: false
   });
   
   useEffect(() => {
@@ -106,10 +110,11 @@ const AnalysisPage = () => {
         
         // 6. Analyze code structure
         console.log("Analyzing code structure...");
-        let codeAnalysis = { dependencies: [] };
+        let codeAnalysis = { dependencies: [], ast: {} };
         try {
           codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
           console.log("Code analysis complete:", codeAnalysis);
+          setAnalysisProgress(prev => ({ ...prev, ast: true }));
         } catch (err) {
           console.error("Error in code analysis:", err);
         }
@@ -249,11 +254,14 @@ const AnalysisPage = () => {
       )}
       
       <Tabs defaultValue="architecture">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="architecture">Architecture Map</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="architecture">Architecture</TabsTrigger>
           <TabsTrigger value="critical-paths">Critical Paths</TabsTrigger>
-          <TabsTrigger value="dependencies">Dependency Graph</TabsTrigger>
-          <TabsTrigger value="tutorials">Interactive Tutorials</TabsTrigger>
+          <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
+          <TabsTrigger value="ast">AST</TabsTrigger>
+          <TabsTrigger value="chat">Ask AI</TabsTrigger>
+          <TabsTrigger value="documentation">Documentation</TabsTrigger>
+          <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
         </TabsList>
         
         <div className="mt-6">
@@ -287,6 +295,50 @@ const AnalysisPage = () => {
               <DependencyGraph 
                 data={analysisData.dependencyGraphAnalysis} 
                 codeAnalysis={analysisData.codeAnalysis} 
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ast">
+            {analysisData && analysisData.codeAnalysis ? (
+              <ASTViewer ast={analysisData.codeAnalysis.ast} />
+            ) : (
+              <div className="space-y-4">
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="chat">
+            {analysisData ? (
+              <CodebaseChatView 
+                codebaseData={{
+                  repositoryInfo: repoInfo,
+                  codeAnalysis: analysisData.codeAnalysis,
+                  criticalPaths: analysisData.criticalPathsAnalysis.criticalPaths
+                }}
+                repositoryName={repoInfo.name}
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="documentation">
+            {analysisData ? (
+              <DocumentationView 
+                repositoryInfo={repoInfo}
+                codeAnalysis={analysisData.codeAnalysis}
+                criticalPaths={analysisData.criticalPathsAnalysis.criticalPaths}
               />
             ) : (
               <div className="space-y-4">

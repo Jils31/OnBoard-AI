@@ -537,6 +537,198 @@ const MyComponent = () => {
   }
 
   /**
+   * Generates comprehensive codebase documentation
+   */
+  async generateDocumentation(codebaseData: any): Promise<any> {
+    console.log("Generating documentation for codebase");
+    
+    const prompt = `
+      You are an expert technical writer creating comprehensive documentation for a codebase.
+      
+      CONTEXT:
+      - You're creating detailed documentation for new developers joining a project
+      - The documentation should explain the architecture, code patterns, and development workflows
+      - Focus on what would help developers get up to speed quickly
+      
+      REPOSITORY INFO:
+      ${JSON.stringify(codebaseData.repositoryInfo || {}, null, 2)}
+      
+      CODE ANALYSIS:
+      ${JSON.stringify(codebaseData.codeAnalysis || {}, null, 2)}
+      
+      CRITICAL PATHS:
+      ${JSON.stringify(codebaseData.criticalPaths || [], null, 2)}
+      
+      INSTRUCTIONS:
+      1. Create comprehensive documentation with the following sections:
+         a. Architecture Overview
+         b. Code Organization
+         c. Key Components and Services
+         d. Development Workflow
+         e. Important Patterns and Conventions
+         f. Getting Started Guide
+      2. Include code examples for common tasks
+      3. Highlight important sections that new developers should focus on
+      
+      OUTPUT FORMAT:
+      Provide your documentation as a JSON object with the following structure:
+      {
+        "title": "string (project name) Documentation",
+        "sections": [
+          {
+            "title": "string (section title)",
+            "content": "string (markdown formatted content)",
+            "importance": number (1-10 rating of how important this section is)
+          }
+        ],
+        "codeExamples": [
+          {
+            "title": "string (example title)",
+            "description": "string (what the example demonstrates)",
+            "code": "string (code snippet)",
+            "language": "string (language of the code snippet)"
+          }
+        ],
+        "keyTakeaways": ["string (list of critical information)"]
+      }
+      
+      Make your documentation comprehensive, accurate, and tailored specifically to this codebase.
+      Return ONLY valid JSON conforming to the structure above without additional text.
+    `;
+
+    try {
+      console.log("Sending documentation generation request to Gemini");
+      const result = await this.generateContent(prompt);
+      console.log("Received documentation generation response");
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw documentation response:", text.substring(0, 200) + "...");
+        
+        // Try to extract JSON from the text
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return this.getDefaultDocumentationResponse();
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err);
+            return this.getDefaultDocumentationResponse();
+          }
+        }
+      }
+      
+      return this.getDefaultDocumentationResponse();
+    } catch (error) {
+      console.error("Error in generateDocumentation:", error);
+      return this.getDefaultDocumentationResponse();
+    }
+  }
+
+  /**
+   * Default documentation response when API fails
+   */
+  private getDefaultDocumentationResponse(): any {
+    return {
+      title: "Project Documentation",
+      sections: [
+        {
+          title: "Architecture Overview",
+          content: "This project follows a modern component-based architecture with separation of concerns between UI components, services, and utilities.",
+          importance: 10
+        },
+        {
+          title: "Code Organization",
+          content: "The codebase is organized into logical directories:\n\n- `/src/components`: UI components\n- `/src/services`: Business logic and API interactions\n- `/src/pages`: Main application views\n- `/src/utils`: Helper functions and utilities",
+          importance: 8
+        },
+        {
+          title: "Development Workflow",
+          content: "The typical development workflow includes:\n\n1. Understanding requirements\n2. Making code changes\n3. Testing functionality\n4. Submitting pull requests",
+          importance: 7
+        }
+      ],
+      codeExamples: [
+        {
+          title: "Using Services",
+          description: "How to use services to interact with APIs",
+          code: "import { myService } from '@/services/myService';\n\nconst MyComponent = () => {\n  const data = myService.getData();\n  return <div>{data}</div>;\n};",
+          language: "typescript"
+        }
+      ],
+      keyTakeaways: [
+        "Understand the component hierarchy",
+        "Follow established patterns for new features",
+        "Leverage existing utilities rather than creating duplicates"
+      ]
+    };
+  }
+
+  /**
+   * Answer specific questions about the codebase
+   */
+  async answerCodebaseQuestion(question: string, codebaseData: any): Promise<string> {
+    console.log("Answering codebase question:", question);
+    
+    const prompt = `
+      You are an AI assistant with deep knowledge of this specific codebase.
+      
+      CONTEXT:
+      - You're helping a developer understand the codebase
+      - You have access to repository structure, code analysis, and critical paths
+      - The developer is asking a specific question about the code
+
+      REPOSITORY INFO:
+      ${JSON.stringify(codebaseData.repositoryInfo || {}, null, 2)}
+      
+      CODE ANALYSIS:
+      ${JSON.stringify(codebaseData.codeAnalysis || {}, null, 2)}
+      
+      CRITICAL PATHS:
+      ${JSON.stringify(codebaseData.criticalPaths || [], null, 2)}
+      
+      DEVELOPER QUESTION:
+      ${question}
+      
+      INSTRUCTIONS:
+      1. Provide a clear, helpful answer to the question
+      2. Include code examples or references when relevant
+      3. Be specific to this codebase - don't give generic answers
+      4. If you don't have enough information to answer accurately, say so and explain what additional information would help
+      
+      Provide a thoughtful, accurate answer formatted with markdown for readability.
+    `;
+
+    try {
+      console.log("Sending codebase question to Gemini");
+      const result = await this.generateContent(prompt);
+      console.log("Received codebase question response");
+      
+      // Extract text from response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        return text;
+      }
+      
+      return "I'm having trouble answering that question right now. Please try again or rephrase your question.";
+    } catch (error) {
+      console.error("Error answering codebase question:", error);
+      return "Sorry, I encountered an error while trying to answer your question. Please try again later.";
+    }
+  }
+
+  /**
    * Core method to call Gemini API
    */
   private async generateContent(prompt: string): Promise<any> {
@@ -583,4 +775,4 @@ const MyComponent = () => {
 }
 
 // Create and export a singleton instance with the API key
-export const geminiService = new GeminiService('AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');
+export const geminiService = new GeminiService(import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');
