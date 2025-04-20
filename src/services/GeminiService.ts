@@ -561,8 +561,8 @@ const MyComponent = () => {
             temperature: 0.2,
             topK: 32,
             topP: 0.95,
-            maxOutputTokens: 4096,
-            responseMimeType: "application/json"
+            maxOutputTokens: 4096
+            // Removed responseMimeType: "application/json" as it's causing the 400 error
           }
         }),
       });
@@ -585,3 +585,4 @@ const MyComponent = () => {
 
 // Create and export a singleton instance with the API key
 export const geminiService = new GeminiService('AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');
+
