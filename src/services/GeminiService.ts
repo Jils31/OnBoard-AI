@@ -9,35 +9,6 @@ export class GeminiService {
     this.apiKey = apiKey;
   }
 
-  // Add the generateContent method that's being used throughout the service
-  async generateContent(prompt: string): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: prompt }],
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error generating content:', error);
-      throw error;
-    }
-  }
-
   /**
    * Analyzes a repository structure using Gemini
    */
@@ -112,28 +83,28 @@ export class GeminiService {
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
         
-        try {
-          // First try to parse the entire text as JSON
-          return JSON.parse(text);
-        } catch (err) {
-          console.log("Could not parse entire text as JSON, looking for JSON in text");
-          
-          // Try to extract JSON from the text (could be surrounded by markdown code blocks)
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                            text.match(/```\s*([\s\S]*?)\s*```/) || 
-                            text.match(/(\{[\s\S]*\})/);
-          
-          if (jsonMatch && jsonMatch[1]) {
-            try {
-              const parsedJson = JSON.parse(jsonMatch[1].trim());
-              console.log("Successfully parsed JSON from Gemini response");
-              return parsedJson;
-            } catch (jsonErr) {
-              console.error("Failed to parse JSON from response:", jsonErr, "Text:", jsonMatch[1]);
-              return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
-            }
-          } else {
-            console.error("No valid JSON found in response");
+        // Try to extract JSON from the text (could be surrounded by markdown code blocks)
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const parsedJson = JSON.parse(jsonMatch[1]);
+            console.log("Successfully parsed JSON from Gemini response");
+            return parsedJson;
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err, "Text:", jsonMatch[1]);
+            return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            const parsedJson = JSON.parse(text);
+            console.log("Successfully parsed JSON from entire Gemini response");
+            return parsedJson;
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err, "Text:", text.substring(0, 200) + "...");
             return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
           }
         }
@@ -174,7 +145,7 @@ export class GeminiService {
   }
 
   /**
-   * Identifies critical code paths using Gemini - Enhanced for deeper analysis
+   * Identifies critical code paths using Gemini
    */
   async identifyCriticalCodePaths(codeData: any): Promise<any> {
     console.log("Identifying critical code paths with data:", codeData);
@@ -182,33 +153,30 @@ export class GeminiService {
     const fileContents = codeData.fileContents || [];
     const fileContentSamples = fileContents.map((file: any) => ({
       path: file.path,
-      snippet: file.content?.substring(0, 500) + '...' || 'No content available',
+      snippet: file.content?.substring(0, 300) + '...' || 'No content available',
       changeFrequency: file.changeFrequency
     }));
 
     const prompt = `
-      You are an expert code analyst specializing in repository onboarding for a ${codeData.role || 'developer'}.
+      You are an expert code analyst specializing in repository onboarding.
       
       CONTEXT:
-      - You're helping a ${codeData.role} developer understand the most important parts of a codebase quickly
+      - You're helping a ${codeData.role} developer understand the most important parts of a codebase
       - You have git history data showing which files change most frequently
       - You have sample file contents of the most important files
-      - Your goal is to identify the critical 20% of code that provides 80% of core functionality
       
       TASK:
-      Create a comprehensive analysis that will help someone quickly understand:
-      1. Critical code paths (the most important code flows to understand first)
+      Analyze the repository to identify:
+      1. Critical code paths (the 20% of code that provides 80% of core functionality)
       2. Key business logic components
       3. Data flow patterns through the application
-      4. Entry points to the application
-      5. Complex algorithms or patterns that require special attention
-      6. Technical debt areas that new developers should be aware of
+      4. Most frequently modified files (based on git history)
       
       CODE DATA:
       Most Frequently Changed Files:
       ${JSON.stringify(codeData.mostChangedFiles || [], null, 2)}
       
-      File Contents (key files):
+      File Contents (truncated for key files):
       ${JSON.stringify(fileContentSamples, null, 2)}
       
       OUTPUT FORMAT:
@@ -220,10 +188,7 @@ export class GeminiService {
             "description": "string (description of the flow's purpose)",
             "importance": number (1-10 rating of how important this is to understand),
             "files": ["string (list of relevant files)"],
-            "dataFlow": ["string (step by step description of data flow)"],
-            "keyFunctions": ["string (list of key functions/methods)"],
-            "entryPoints": ["string (entry points to this flow)"],
-            "complexityPoints": ["string (areas of complexity in this flow)"]
+            "dataFlow": ["string (step by step description of data flow)"]
           }
         ],
         "frequentlyChangedFiles": [
@@ -231,18 +196,15 @@ export class GeminiService {
             "filename": "string (file path)",
             "count": number (change frequency),
             "significance": "string (why this file changes often)",
-            "recommendation": "string (what to know about this file)",
-            "keyPatterns": ["string (important code patterns)"]
+            "recommendation": "string (what to know about this file)"
           }
         ],
         "keyBusinessLogic": ["string (list of key business logic areas)"],
-        "entryPoints": ["string (list of main entry points to the codebase)"],
-        "technicalDebt": ["string (areas that need improvement)"],
-        "abstractSyntaxTreeInsights": ["string (key insights from code structure)"]
+        "entryPoints": ["string (list of main entry points to the codebase)"]
       }
       
-      Be specific, practical, and thorough. Focus on the unique characteristics of this codebase.
-      Return ONLY the valid JSON object with no additional text.
+      Focus on identifying patterns that a ${codeData.role} developer would find most relevant. Be specific, practical, and thorough.
+      Return ONLY the JSON object described above with no additional text or explanation.
     `;
 
     try {
@@ -255,26 +217,24 @@ export class GeminiService {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw critical paths response:", text.substring(0, 200) + "...");
         
-        try {
-          // First try to parse the entire text as JSON
-          return JSON.parse(text);
-        } catch (err) {
-          console.log("Could not parse entire text as JSON, looking for JSON in text");
-          
-          // Try to extract JSON from the text
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                            text.match(/```\s*([\s\S]*?)\s*```/) || 
-                            text.match(/(\{[\s\S]*\})/);
-          
-          if (jsonMatch && jsonMatch[1]) {
-            try {
-              return JSON.parse(jsonMatch[1].trim());
-            } catch (jsonErr) {
-              console.error("Failed to parse JSON from response:", jsonErr);
-              return this.getDefaultCriticalPathsResponse();
-            }
-          } else {
-            console.error("No valid JSON found in response");
+        // Try to extract JSON from the text
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return this.getDefaultCriticalPathsResponse();
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err);
             return this.getDefaultCriticalPathsResponse();
           }
         }
@@ -298,20 +258,14 @@ export class GeminiService {
           description: "The main application workflow that users interact with",
           importance: 9,
           files: ["src/App.tsx", "src/main.tsx", "src/pages/Index.tsx"],
-          dataFlow: ["User accesses application", "App initializes", "Main functionality loads"],
-          keyFunctions: ["main()", "App()", "renderRoutes()"],
-          entryPoints: ["main.tsx", "index.html"],
-          complexityPoints: ["Routing logic", "State management"]
+          dataFlow: ["User accesses application", "App initializes", "Main functionality loads"]
         },
         {
           name: "Data Processing",
           description: "How data is processed in the application",
           importance: 8,
           files: ["src/services/GitHubService.ts", "src/services/GeminiService.ts"],
-          dataFlow: ["Data retrieved", "Data processed", "Results displayed to user"],
-          keyFunctions: ["fetchData()", "processData()", "renderResults()"],
-          entryPoints: ["API calls", "User interactions"],
-          complexityPoints: ["Data transformation", "Error handling"]
+          dataFlow: ["Data retrieved", "Data processed", "Results displayed to user"]
         }
       ],
       frequentlyChangedFiles: [
@@ -319,14 +273,11 @@ export class GeminiService {
           filename: "src/components/RepositoryForm.tsx",
           count: 15,
           significance: "Core user interaction component",
-          recommendation: "Understand how user input is processed",
-          keyPatterns: ["Form validation", "Event handling", "State updates"]
+          recommendation: "Understand how user input is processed"
         }
       ],
       keyBusinessLogic: ["Repository analysis", "Code structure visualization", "User interaction"],
-      entryPoints: ["src/main.tsx", "src/App.tsx", "src/pages/Index.tsx"],
-      technicalDebt: ["Error handling could be improved", "Need more comprehensive test coverage"],
-      abstractSyntaxTreeInsights: ["Component hierarchy is well-structured", "Service pattern is consistently applied"]
+      entryPoints: ["src/main.tsx", "src/App.tsx", "src/pages/Index.tsx"]
     };
   }
 
@@ -361,31 +312,21 @@ export class GeminiService {
             {
               "id": "string (unique identifier)",
               "label": "string (display name)",
-              "type": "string (node type: component, service, utility, etc.)",
-              "size": number (relative importance, 1-10),
-              "group": "string (logical grouping)"
+              "type": "string (node type: component, service, utility, etc.)"
             }
           ],
           "edges": [
             {
               "source": "string (source node id)",
               "target": "string (target node id)",
-              "type": "string (dependency type: imports, uses, extends, etc.)",
-              "strength": number (1-5, indicating how tightly coupled),
-              "description": "string (details about this relationship)"
+              "type": "string (dependency type: imports, uses, extends, etc.)"
             }
           ]
         },
         "circularDependencies": [
           ["string (list of module names forming a circular dependency)"]
         ],
-        "recommendations": [
-          "string (specific recommendations for improvement)"
-        ],
-        "bestPractices": {
-          "followed": ["string (architectural best practices followed)"],
-          "violations": ["string (architectural best practices violated)"]
-        }
+        "recommendations": ["string (specific recommendations for improvement)"]
       }
       
       Ensure your analysis is precise, actionable, and focused on architectural quality.
@@ -402,26 +343,24 @@ export class GeminiService {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw dependency graph response:", text.substring(0, 200) + "...");
         
-        try {
-          // First try to parse the entire text as JSON
-          return JSON.parse(text);
-        } catch (err) {
-          console.log("Could not parse entire text as JSON, looking for JSON in text");
-          
-          // Try to extract JSON from the text
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                            text.match(/```\s*([\s\S]*?)\s*```/) || 
-                            text.match(/(\{[\s\S]*\})/);
-          
-          if (jsonMatch && jsonMatch[1]) {
-            try {
-              return JSON.parse(jsonMatch[1].trim());
-            } catch (jsonErr) {
-              console.error("Failed to parse JSON from response:", jsonErr);
-              return this.getDefaultDependencyGraphResponse();
-            }
-          } else {
-            console.error("No valid JSON found in response");
+        // Try to extract JSON from the text
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return this.getDefaultDependencyGraphResponse();
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err);
             return this.getDefaultDependencyGraphResponse();
           }
         }
@@ -441,32 +380,28 @@ export class GeminiService {
     return {
       dependencyGraph: {
         nodes: [
-          { id: "n1", label: "App", type: "component", size: 10, group: "core" },
-          { id: "n2", label: "Services", type: "service", size: 8, group: "data" },
-          { id: "n3", label: "Components", type: "component", size: 7, group: "ui" },
-          { id: "n4", label: "Utilities", type: "utility", size: 5, group: "helpers" }
+          { id: "n1", label: "App", type: "component" },
+          { id: "n2", label: "Services", type: "service" },
+          { id: "n3", label: "Components", type: "component" },
+          { id: "n4", label: "Utilities", type: "utility" }
         ],
         edges: [
-          { source: "n1", target: "n2", type: "imports", strength: 3, description: "Uses services for data fetching" },
-          { source: "n1", target: "n3", type: "imports", strength: 4, description: "Renders UI components" },
-          { source: "n3", target: "n4", type: "imports", strength: 2, description: "Uses utility functions" },
-          { source: "n2", target: "n4", type: "imports", strength: 2, description: "Uses utility functions" }
+          { source: "n1", target: "n2", type: "imports" },
+          { source: "n1", target: "n3", type: "imports" },
+          { source: "n3", target: "n4", type: "imports" },
+          { source: "n2", target: "n4", type: "imports" }
         ]
       },
       circularDependencies: [],
       recommendations: [
         "Consider creating clearer module boundaries",
         "Improve separation of concerns between components"
-      ],
-      bestPractices: {
-        followed: ["Component-based architecture", "Service pattern for data access"],
-        violations: ["Some components have too many responsibilities"]
-      }
+      ]
     };
   }
 
   /**
-   * Creates interactive tutorials using Gemini - Enhanced for better learning
+   * Creates interactive tutorials using Gemini
    */
   async createTutorial(workflow: any): Promise<any> {
     console.log("Creating tutorial with data:", workflow);
@@ -475,10 +410,10 @@ export class GeminiService {
       You are an expert technical writer creating an interactive tutorial for developers.
       
       CONTEXT:
-      - You're creating a comprehensive step-by-step tutorial for a ${workflow.role || 'developer'} developer
+      - You're creating a step-by-step tutorial for a ${workflow.role || 'developer'} developer
       - The tutorial should explain critical workflows in the codebase
       - The developer is new to this codebase and needs clear, practical guidance
-      - Focus on teaching patterns and principles, not just syntax
+      - Focus on the most important coding patterns they need to understand
       
       REPOSITORY INFO:
       ${JSON.stringify(workflow.repositoryInfo || {}, null, 2)}
@@ -491,7 +426,7 @@ export class GeminiService {
       2. The tutorial should walk through the workflow step by step
       3. Include code examples that illustrate each step
       4. Explain key concepts, patterns, and decisions
-      5. Make the tutorial interactive with clear explanations and questions to reinforce learning
+      5. Make the tutorial interactive with clear explanations
       
       OUTPUT FORMAT:
       Provide your tutorial as a JSON object with the following structure:
@@ -525,28 +460,24 @@ export class GeminiService {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw tutorial response:", text.substring(0, 200) + "...");
         
-        try {
-          // First try to parse the entire text as JSON
-          return JSON.parse(text);
-        } catch (err) {
-          console.log("Could not parse entire text as JSON, looking for JSON in text");
-          
-          // Try to extract JSON from the text
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                            text.match(/```\s*([\s\S]*?)\s*```/) || 
-                            text.match(/(\{[\s\S]*\})/);
-          
-          if (jsonMatch && jsonMatch[1]) {
-            try {
-              const jsonText = jsonMatch[1].trim();
-              console.log("Extracted JSON text:", jsonText.substring(0, 100) + "...");
-              return JSON.parse(jsonText);
-            } catch (jsonErr) {
-              console.error("Failed to parse JSON from response:", jsonErr);
-              return this.getDefaultTutorialResponse(workflow.role);
-            }
-          } else {
-            console.error("No valid JSON found in response");
+        // Try to extract JSON from the text
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return this.getDefaultTutorialResponse(workflow.role);
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err);
             return this.getDefaultTutorialResponse(workflow.role);
           }
         }
@@ -570,7 +501,6 @@ export class GeminiService {
         "Basic understanding of web development",
         "Familiarity with JavaScript/TypeScript"
       ],
-      estimatedTime: "20 minutes",
       steps: [
         {
           title: "Repository Overview",
@@ -581,20 +511,7 @@ src/
   services/     # Services for API interactions
   pages/        # Main application pages
   utils/        # Utility functions`,
-          explanation: "Most modern web applications follow a structured organization pattern to separate concerns and make code more maintainable.",
-          keyTakeaways: [
-            "The codebase follows a component-based architecture",
-            "Business logic is separated from presentation"
-          ],
-          commonMistakes: [
-            "Mixing business logic with UI components",
-            "Not understanding the component hierarchy"
-          ],
-          checkpointQuestion: {
-            question: "What folder would you look in to find API interaction code?",
-            answer: "services",
-            hint: "Look for a folder that might handle external data sources"
-          }
+          explanation: "Most modern web applications follow a structured organization pattern to separate concerns and make code more maintainable."
         },
         {
           title: "Understanding Key Components",
@@ -612,267 +529,58 @@ const MyComponent = () => {
     </div>
   );
 };`,
-          explanation: "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data.",
-          keyTakeaways: [
-            "Components use hooks for data access",
-            "UI rendering is separated from data fetching"
-          ],
-          commonMistakes: [
-            "Fetching data directly in components",
-            "Not handling loading/error states"
-          ],
-          checkpointQuestion: {
-            question: "What pattern does this component use to access data?",
-            answer: "Hooks",
-            hint: "Look at the 'use' prefix in the function being called"
-          }
+          explanation: "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data."
         }
       ],
-      additionalNotes: "As you explore the codebase further, focus on understanding how data flows between components and which parts handle core business logic.",
-      furtherLearning: [
-        "Review the test files to understand component behaviors",
-        "Check documentation in README.md files",
-        "Explore example usage in the codebase"
-      ]
+      additionalNotes: "As you explore the codebase further, focus on understanding how data flows between components and which parts handle core business logic."
     };
   }
 
   /**
-   * NEW: Generates Abstract Syntax Tree analysis
+   * Core method to call Gemini API
    */
-  async generateASTAnalysis(files: any): Promise<any> {
-    console.log("Generating AST analysis");
+  private async generateContent(prompt: string): Promise<any> {
+    const url = `${this.baseUrl}?key=${this.apiKey}`;
     
-    const prompt = `
-      You are an expert code analyst specializing in Abstract Syntax Tree (AST) analysis.
-      
-      CONTEXT:
-      - You're analyzing a codebase to help developers understand its structure
-      - You have access to file contents and structure information
-      - Your task is to create an AST-based analysis that reveals code patterns and structure
-      
-      FILE DATA:
-      ${JSON.stringify(files, null, 2)}
-      
-      INSTRUCTIONS:
-      1. Analyze the file contents to identify key patterns and structures
-      2. Identify function and class relationships
-      3. Map out control flow patterns
-      4. Identify potential code smells or anti-patterns
-      5. Suggest refactoring opportunities based on AST analysis
-      
-      OUTPUT FORMAT:
-      Provide your analysis as a JSON object with the following structure:
-      {
-        "astNodes": [
-          {
-            "type": "string (node type: function, class, hook, etc.)",
-            "name": "string (name of the node)",
-            "location": "string (file path)",
-            "complexity": number (1-10 complexity score),
-            "children": ["string (names of child nodes)"],
-            "dependencies": ["string (external dependencies)"]
-          }
-        ],
-        "patterns": [
-          {
-            "name": "string (pattern name)",
-            "description": "string (pattern description)",
-            "locations": ["string (where this pattern is found)"],
-            "quality": "string (good, neutral, concerning)"
-          }
-        ],
-        "codeSmells": [
-          {
-            "type": "string (type of code smell)",
-            "location": "string (where it's found)",
-            "suggestion": "string (how to improve it)"
-          }
-        ],
-        "refactoringOpportunities": ["string (suggestions for refactoring)"]
-      }
-      
-      Focus on providing practical insights that will help developers understand the codebase structure.
-      Return ONLY valid JSON conforming to the structure specified above.
-    `;
-
     try {
-      console.log("Sending AST analysis request to Gemini");
-      const result = await this.generateContent(prompt);
-      console.log("Received AST analysis response");
-      
-      // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-        const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw AST analysis response:", text.substring(0, 200) + "...");
-        
-        try {
-          // First try to parse the entire text as JSON
-          return JSON.parse(text);
-        } catch (err) {
-          console.log("Could not parse entire text as JSON, looking for JSON in text");
-          
-          // Try to extract JSON from the text
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                            text.match(/```\s*([\s\S]*?)\s*```/) || 
-                            text.match(/(\{[\s\S]*\})/);
-          
-          if (jsonMatch && jsonMatch[1]) {
-            try {
-              return JSON.parse(jsonMatch[1].trim());
-            } catch (jsonErr) {
-              console.error("Failed to parse JSON from response:", jsonErr);
-              return this.getDefaultASTAnalysisResponse();
+      console.log("Calling Gemini API");
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }]
             }
-          } else {
-            console.error("No valid JSON found in response");
-            return this.getDefaultASTAnalysisResponse();
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            topK: 32,
+            topP: 0.95,
+            maxOutputTokens: 4096
+            // Removed responseMimeType: "application/json" as it's causing the 400 error
           }
-        }
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`API request failed with status ${response.status}`);
+        const responseText = await response.text();
+        console.error(`Response: ${responseText}`);
+        throw new Error(`API request failed with status ${response.status}`);
       }
-      
-      return this.getDefaultASTAnalysisResponse();
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error("Error in generateASTAnalysis:", error);
-      return this.getDefaultASTAnalysisResponse();
+      console.error("Error calling Gemini API:", error);
+      throw error;
     }
   }
+}
 
-  /**
-   * Default AST analysis response when API fails
-   */
-  private getDefaultASTAnalysisResponse(): any {
-    return {
-      astNodes: [
-        {
-          type: "function",
-          name: "App",
-          location: "src/App.tsx",
-          complexity: 3,
-          children: ["Router", "MainLayout"],
-          dependencies: ["react", "react-router-dom"]
-        },
-        {
-          type: "component",
-          name: "RepositoryForm",
-          location: "src/components/RepositoryForm.tsx",
-          complexity: 4,
-          children: ["FormInput", "Button"],
-          dependencies: ["react", "react-hook-form"]
-        },
-        {
-          type: "service",
-          name: "GitHubService",
-          location: "src/services/GitHubService.ts",
-          complexity: 5,
-          children: [],
-          dependencies: ["octokit"]
-        }
-      ],
-      patterns: [
-        {
-          name: "Component Composition",
-          description: "Breaking UI into smaller reusable components",
-          locations: ["src/components/*"],
-          quality: "good"
-        },
-        {
-          name: "Service Pattern",
-          description: "Centralizing external API calls in service modules",
-          locations: ["src/services/*"],
-          quality: "good"
-        },
-        {
-          name: "Hook Pattern",
-          description: "Using custom hooks for shared logic",
-          locations: ["src/hooks/*"],
-          quality: "good"
-        }
-      ],
-      codeSmells: [
-        {
-          type: "Large File",
-          location: "src/services/GeminiService.ts",
-          suggestion: "Split into smaller, more focused modules"
-        },
-        {
-          type: "Duplicate Logic",
-          location: "Multiple components",
-          suggestion: "Extract shared logic into hooks or utility functions"
-        }
-      ],
-      refactoringOpportunities: [
-        "Extract error handling into a dedicated utility",
-        "Create a central state management solution",
-        "Implement a more consistent component API"
-      ]
-    };
-  }
-
-  /**
-   * NEW: Chat with AI about the codebase
-   */
-  async chatWithAI(query: string, codebaseContext: any): Promise<any> {
-    console.log("Chatting with AI about codebase:", query);
-    
-    const prompt = `
-      You are an expert software developer who knows everything about this codebase.
-      
-      CODEBASE CONTEXT:
-      ${JSON.stringify(codebaseContext, null, 2)}
-      
-      USER QUERY:
-      ${query}
-      
-      INSTRUCTIONS:
-      1. Answer the user's query about the codebase
-      2. Be specific and reference actual files, functions, or patterns
-      3. Provide code examples when appropriate
-      4. If you're unsure about something, be honest about limitations
-      5. Format your response using plain text with minimal formatting
-      6. Do not use markdown formatting like asterisks for bold or italics
-      7. Use simple plain text for headers and bullet points
-      
-      Your response should be helpful, accurate, and focus on helping the user understand the codebase better.
-      Format your response in a clear, readable way with minimal formatting.
-    `;
-
-    try {
-      console.log("Sending chat query to Gemini");
-      const result = await this.generateContent(prompt);
-      console.log("Received chat response from Gemini");
-      
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-        return {
-          response: result.candidates[0].content.parts[0].text,
-          success: true
-        };
-      }
-      
-      return {
-        response: "I'm sorry, I couldn't generate a response based on the codebase. Please try rephrasing your question or providing more context.",
-        success: false
-      };
-    } catch (error) {
-      console.error("Error in chatWithAI:", error);
-      return {
-        response: "There was an error processing your question. Please try again later.",
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-  }
-
-  /**
-   * NEW: Generate downloadable documentation
-   */
-  async generateDocumentation(repoData: any): Promise<any> {
-    console.log("Generating documentation with data:", repoData);
-    
-    const prompt = `
-      You are an expert technical writer creating comprehensive documentation for a codebase.
-      
-      CONTEXT:
-      - You're creating documentation for developers who are new to this codebase
-      - The documentation should be comprehensive yet concise
-      - Focus on making it easy
+// Create and export a singleton instance with the API key
+export const geminiService = new GeminiService('AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');

@@ -12,9 +12,6 @@ import ArchitectureMap from "@/components/analysis/ArchitectureMap";
 import CriticalPathsView from "@/components/analysis/CriticalPathsView";
 import DependencyGraph from "@/components/analysis/DependencyGraph";
 import TutorialView from "@/components/analysis/TutorialView";
-import ASTViewer from "@/components/analysis/ASTViewer";
-import CodebaseChat from "@/components/analysis/CodebaseChat";
-import DocumentationDownload from "@/components/analysis/DocumentationDownload";
 import LoadingState from "@/components/LoadingState";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -32,9 +29,7 @@ const AnalysisPage = () => {
     structure: false,
     criticalPaths: false,
     dependencies: false,
-    tutorials: false,
-    ast: false,
-    documentation: false
+    tutorials: false
   });
   
   useEffect(() => {
@@ -73,7 +68,7 @@ const AnalysisPage = () => {
         
         // 3. Get most changed files
         console.log("Fetching most changed files...");
-        const mostChangedFiles = await githubService.getMostChangedFiles(owner, repo, 15);
+        const mostChangedFiles = await githubService.getMostChangedFiles(owner, repo, 10);
         console.log("Most changed files fetched:", mostChangedFiles);
         
         // 4. Analyze repository structure
@@ -94,7 +89,7 @@ const AnalysisPage = () => {
         // 5. Get file contents for selected files (based on most changed files)
         console.log("Fetching file contents...");
         const fileContents = [];
-        for (const file of mostChangedFiles.slice(0, 10)) {
+        for (const file of mostChangedFiles.slice(0, 5)) {
           try {
             console.log(`Fetching content for ${file.filename}...`);
             const content = await githubService.getFileContent(owner, repo, file.filename);
@@ -159,29 +154,23 @@ const AnalysisPage = () => {
         console.log("Tutorials created:", tutorialsAnalysis);
         setAnalysisProgress(prev => ({ ...prev, tutorials: true }));
         
-        // 10. Generate AST analysis
-        console.log("Generating AST analysis...");
-        const astAnalysis = await geminiService.generateASTAnalysis(fileContents);
-        console.log("AST analysis generated:", astAnalysis);
-        setAnalysisProgress(prev => ({ ...prev, ast: true }));
-        
-        toast({
-          title: "Analysis Complete",
-          description: "All insights are ready to explore"
-        });
-        
         // Combine all analysis results
         const finalAnalysisData = {
           structureAnalysis,
           criticalPathsAnalysis,
           dependencyGraphAnalysis,
           tutorialsAnalysis,
-          codeAnalysis,
-          astAnalysis
+          codeAnalysis
         };
         
         console.log("Setting final analysis data:", finalAnalysisData);
         setAnalysisData(finalAnalysisData);
+        
+        toast({
+          title: "Analysis Complete",
+          description: "All insights are ready to explore",
+          variant: "default"
+        });
         
         setIsLoading(false);
       } catch (error) {
@@ -201,21 +190,6 @@ const AnalysisPage = () => {
       analyzeRepository();
     }
   }, [repoUrl, role, toast]);
-  
-  // Prepare codebase context for AI chat
-  const getChatContext = () => {
-    if (!analysisData || !repoInfo) return {};
-    
-    return {
-      repoName: repoInfo.name,
-      repoDescription: repoInfo.description,
-      language: repoInfo.language,
-      architecture: analysisData.structureAnalysis?.architecture,
-      criticalPaths: analysisData.criticalPathsAnalysis?.criticalPaths,
-      keyBusinessLogic: analysisData.criticalPathsAnalysis?.keyBusinessLogic,
-      dependencyStructure: analysisData.dependencyGraphAnalysis?.dependencyGraph,
-    };
-  };
   
   if (isLoading) {
     return <LoadingState repo={repoUrl} progress={analysisProgress} />;
@@ -250,7 +224,7 @@ const AnalysisPage = () => {
       {repoInfo && (
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">{repoInfo.name}</h1>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center">
               <FileCode className="h-4 w-4 mr-1" />
               {repoInfo.language}
@@ -275,14 +249,11 @@ const AnalysisPage = () => {
       )}
       
       <Tabs defaultValue="architecture">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-          <TabsTrigger value="architecture">Architecture</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="architecture">Architecture Map</TabsTrigger>
           <TabsTrigger value="critical-paths">Critical Paths</TabsTrigger>
-          <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
-          <TabsTrigger value="ast">AST Analysis</TabsTrigger>
-          <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
-          <TabsTrigger value="chat">AI Chat</TabsTrigger>
-          <TabsTrigger value="docs">Documentation</TabsTrigger>
+          <TabsTrigger value="dependencies">Dependency Graph</TabsTrigger>
+          <TabsTrigger value="tutorials">Interactive Tutorials</TabsTrigger>
         </TabsList>
         
         <div className="mt-6">
@@ -325,47 +296,11 @@ const AnalysisPage = () => {
             )}
           </TabsContent>
           
-          <TabsContent value="ast">
-            {analysisData ? (
-              <ASTViewer data={analysisData.astAnalysis} />
-            ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
-            )}
-          </TabsContent>
-          
           <TabsContent value="tutorials">
             {analysisData ? (
               <TutorialView 
                 data={analysisData.tutorialsAnalysis} 
                 role={role} 
-              />
-            ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="chat">
-            {analysisData ? (
-              <CodebaseChat codebaseContext={getChatContext()} />
-            ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="docs">
-            {analysisData ? (
-              <DocumentationDownload 
-                analysisData={analysisData}
-                repoInfo={repoInfo} 
               />
             ) : (
               <div className="space-y-4">
