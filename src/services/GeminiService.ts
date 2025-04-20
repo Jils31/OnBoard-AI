@@ -1,3 +1,4 @@
+
 /**
  * Service for interacting with Google's Gemini API
  */
@@ -7,6 +8,35 @@ export class GeminiService {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+  }
+
+  // Add the generateContent method that's being used throughout the service
+  async generateContent(prompt: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }],
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error generating content:', error);
+      throw error;
+    }
   }
 
   /**
@@ -867,4 +897,104 @@ const MyComponent = () => {
       4. Focus on helping new developers get up to speed quickly
       
       OUTPUT FORMAT:
-      Provide your documentation as a JSON
+      Provide your documentation as a JSON object with the following structure:
+      {
+        "title": "string (repository name)",
+        "description": "string (repository description)",
+        "sections": [
+          {
+            "title": "string (section title)",
+            "content": "string (markdown content)",
+            "subsections": [
+              {
+                "title": "string (subsection title)",
+                "content": "string (markdown content)"
+              }
+            ]
+          }
+        ]
+      }
+      
+      Be comprehensive and focus on practical information that will help developers understand how this application works.
+    `;
+
+    try {
+      console.log("Sending documentation request to Gemini");
+      const result = await this.generateContent(prompt);
+      console.log("Received documentation response");
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        
+        try {
+          // First try to parse the entire text as JSON
+          return JSON.parse(text);
+        } catch (err) {
+          console.log("Could not parse entire text as JSON, looking for JSON in text");
+          
+          // Try to extract JSON from the text
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+          
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              return JSON.parse(jsonMatch[1].trim());
+            } catch (jsonErr) {
+              console.error("Failed to parse JSON from response:", jsonErr);
+              return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name || "Repository");
+            }
+          } else {
+            console.error("No valid JSON found in response");
+            return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name || "Repository");
+          }
+        }
+      }
+      
+      return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name || "Repository");
+    } catch (error) {
+      console.error("Error in generateDocumentation:", error);
+      return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name || "Repository");
+    }
+  }
+
+  /**
+   * Default documentation response when API fails
+   */
+  private getDefaultDocumentationResponse(repoName: string): any {
+    return {
+      title: repoName,
+      description: "A detailed guide to understanding the codebase",
+      sections: [
+        {
+          title: "Architecture Overview",
+          content: "This project follows a modern component-based architecture with separation of concerns between UI, business logic, and data access.",
+          subsections: [
+            {
+              title: "Key Components",
+              content: "- **UI Layer**: Responsible for rendering and user interaction\n- **Service Layer**: Handles business logic and API communication\n- **Utility Layer**: Provides helper functions and shared logic"
+            }
+          ]
+        },
+        {
+          title: "Getting Started",
+          content: "To begin working with this codebase, familiarize yourself with the main entry points and workflow patterns.",
+          subsections: [
+            {
+              title: "Main Entry Points",
+              content: "- `src/App.tsx`: The root component\n- `src/main.tsx`: Application initialization\n- `src/pages/`: Core application pages"
+            },
+            {
+              title: "Development Workflow",
+              content: "Follow these steps to make changes:\n1. Understand the component hierarchy\n2. Locate the relevant files\n3. Make changes following the established patterns\n4. Test your changes thoroughly"
+            }
+          ]
+        }
+      ]
+    };
+  }
+}
+
+// Create and export a default instance
+export const geminiService = new GeminiService(process.env.GEMINI_API_KEY || '');

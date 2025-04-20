@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 
@@ -61,8 +62,10 @@ const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
     const borderColor = typeof node.color?.border === 'string'
       ? node.color.border
       : 'rgba(75, 192, 192, 0.6)'; // Default color if it's not a string
-    const backgroundColor = typeof borderColor === 'string'
-      ? borderColor.replace('rgb', 'rgba').replace(')', ', 0.2)')
+    
+    // Fix the replace error by checking if borderColor is a string first
+    const backgroundColor = typeof borderColor === 'string' 
+      ? borderColor.replace(/rgb/g, 'rgba').replace(/\)/g, ', 0.2)')
       : 'rgba(75, 192, 192, 0.2)'; // Default background color
 
     ctx.strokeStyle = borderColor;
@@ -79,14 +82,14 @@ const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
 
   return (
     <div style={{ height: '800px', width: '100%' }}>
-      {data ? (
+      {data && data.dependencyGraph ? (
         <ForceGraph2D
           ref={fgRef}
           graphData={data.dependencyGraph}
           nodeLabel={nodeLabel}
           linkLabel={edgeLabel}
           nodeColor={nodeColor}
-          edgeColor={edgeColor}
+          linkColor={edgeColor} // Changed from edgeColor to linkColor to match force-graph-2d API
           onNodeClick={handleNodeClick}
           nodeCanvasObject={renderCustomNode}
           nodeCanvasObjectMode={() => 'replace'}
