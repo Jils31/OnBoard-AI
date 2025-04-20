@@ -1,4 +1,3 @@
-
 /**
  * Service for interacting with Google's Gemini API
  */
@@ -585,4 +584,3 @@ const MyComponent = () => {
 
 // Create and export a singleton instance with the API key
 export const geminiService = new GeminiService('AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');
-
