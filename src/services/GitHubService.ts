@@ -138,8 +138,11 @@ export class GitHubService {
       });
       
       if ('content' in data && 'encoding' in data) {
-        // Content is base64 encoded
-        return Buffer.from(data.content, 'base64').toString();
+        // Use atob to decode base64 content instead of Buffer
+        if (data.encoding === 'base64') {
+          return atob(data.content.replace(/\n/g, ''));
+        }
+        return data.content;
       }
       
       throw new Error("Received unexpected response format");

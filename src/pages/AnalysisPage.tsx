@@ -13,11 +13,13 @@ import CriticalPathsView from "@/components/analysis/CriticalPathsView";
 import DependencyGraph from "@/components/analysis/DependencyGraph";
 import TutorialView from "@/components/analysis/TutorialView";
 import LoadingState from "@/components/LoadingState";
+import { useToast } from "@/components/ui/use-toast";
 
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
   const repoUrl = searchParams.get("repo") || "";
   const role = searchParams.get("role") || "full-stack";
+  const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,11 @@ const AnalysisPage = () => {
         
         const { owner, repo } = parsedRepo;
         
+        toast({
+          title: "Analysis Started",
+          description: `Analyzing ${owner}/${repo}...`
+        });
+        
         // 1. Get repository information
         const repoInfo = await githubService.getRepositoryInfo(owner, repo);
         setRepoInfo(repoInfo);
@@ -62,6 +69,11 @@ const AnalysisPage = () => {
         });
         setAnalysisProgress(prev => ({ ...prev, structure: true }));
         
+        toast({
+          title: "Structure Analysis Complete",
+          description: "Analyzing code patterns..."
+        });
+        
         // 5. Get file contents for selected files (based on most changed files)
         const fileContents = [];
         for (const file of mostChangedFiles.slice(0, 5)) {
@@ -78,7 +90,12 @@ const AnalysisPage = () => {
         }
         
         // 6. Analyze code structure
-        const codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
+        let codeAnalysis = { dependencies: [] };
+        try {
+          codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
+        } catch (err) {
+          console.error("Error in code analysis:", err);
+        }
         
         // 7. Identify critical code paths
         const criticalPathsAnalysis = await geminiService.identifyCriticalCodePaths({
@@ -89,12 +106,22 @@ const AnalysisPage = () => {
         });
         setAnalysisProgress(prev => ({ ...prev, criticalPaths: true }));
         
+        toast({
+          title: "Critical Paths Identified",
+          description: "Generating dependency graph..."
+        });
+        
         // 8. Generate dependency graph
         const dependencyGraphAnalysis = await geminiService.generateDependencyGraph({
           codeAnalysis: codeAnalysis.dependencies,
           repositoryStructure: repoStructure
         });
         setAnalysisProgress(prev => ({ ...prev, dependencies: true }));
+        
+        toast({
+          title: "Dependency Analysis Complete",
+          description: "Creating interactive tutorials..."
+        });
         
         // 9. Create tutorials based on critical paths
         const tutorialsAnalysis = await geminiService.createTutorial({
@@ -113,20 +140,30 @@ const AnalysisPage = () => {
           codeAnalysis
         });
         
+        toast({
+          title: "Analysis Complete",
+          description: "All insights are ready to explore",
+          variant: "success"
+        });
+        
         setIsLoading(false);
       } catch (error) {
         console.error("Error analyzing repository:", error);
         setError(error instanceof Error ? error.message : "Unknown error occurred");
         setIsLoading(false);
+        
+        toast({
+          title: "Analysis Error",
+          description: error instanceof Error ? error.message : "Unknown error occurred",
+          variant: "destructive"
+        });
       }
     };
     
     if (repoUrl) {
       analyzeRepository();
     }
-  }, [repoUrl, role]);
-  
-  // Remove the mock data loading for development
+  }, [repoUrl, role, toast]);
   
   if (isLoading) {
     return <LoadingState repo={repoUrl} progress={analysisProgress} />;
