@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, ChevronRight, Lightbulb, Bookmark } from "lucide-react";
+import { CheckCircle, ChevronRight, Lightbulb, Bookmark, AlertCircle } from "lucide-react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface TutorialViewProps {
   data: any;
@@ -15,6 +16,8 @@ interface TutorialViewProps {
 
 const TutorialView = ({ data, role }: TutorialViewProps) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [hasParsed, setHasParsed] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   
   // Default tutorial data to handle when data is undefined or missing required properties
   const defaultTutorial = {
@@ -42,12 +45,13 @@ src/
   };
   
   // Safely parse the data and provide defaults if missing
-  const parsedData = (() => {
-    if (!data) return defaultTutorial;
-    
+  const parsedData = React.useMemo(() => {
     try {
+      console.log("Parsing tutorial data:", data);
+      setHasParsed(true);
+      
       // If data is already an object with the necessary structure, use it
-      if (data.title && Array.isArray(data.steps)) {
+      if (data && typeof data === 'object' && data.title && Array.isArray(data.steps)) {
         return data;
       }
       
@@ -60,15 +64,28 @@ src/
           }
         } catch (e) {
           console.error('Failed to parse tutorial data as JSON:', e);
+          setParseError("Failed to parse tutorial data. Using default tutorial content.");
         }
       }
       
+      // Check if data is in a nested property
+      if (data && typeof data === 'object') {
+        for (const key of Object.keys(data)) {
+          const nestedData = data[key];
+          if (nestedData && typeof nestedData === 'object' && nestedData.title && Array.isArray(nestedData.steps)) {
+            return nestedData;
+          }
+        }
+      }
+      
+      console.warn("Using default tutorial data as no valid tutorial data was found");
       return defaultTutorial;
     } catch (error) {
       console.error('Error processing tutorial data:', error);
+      setParseError("Error processing tutorial data. Using default tutorial content.");
       return defaultTutorial;
     }
-  })();
+  }, [data]);
   
   // Extract properties with safe fallbacks
   const tutorial = {
@@ -98,6 +115,16 @@ src/
   
   return (
     <div className="space-y-6">
+      {parseError && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Parsing Issue</AlertTitle>
+          <AlertDescription>
+            {parseError}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Card className="border-blue-100 dark:border-blue-900">
         <CardHeader>
           <CardTitle className="text-2xl">{tutorial.title}</CardTitle>

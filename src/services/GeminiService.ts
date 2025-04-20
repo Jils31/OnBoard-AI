@@ -1,4 +1,3 @@
-
 /**
  * Service for interacting with Google's Gemini API
  */
@@ -84,28 +83,28 @@ export class GeminiService {
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
         
-        // Try to extract JSON from the text (could be surrounded by markdown code blocks)
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            const parsedJson = JSON.parse(jsonMatch[1]);
-            console.log("Successfully parsed JSON from Gemini response");
-            return parsedJson;
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err, "Text:", jsonMatch[1]);
-            return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            const parsedJson = JSON.parse(text);
-            console.log("Successfully parsed JSON from entire Gemini response");
-            return parsedJson;
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err, "Text:", text.substring(0, 200) + "...");
+        try {
+          // First try to parse the entire text as JSON
+          return JSON.parse(text);
+        } catch (err) {
+          console.log("Could not parse entire text as JSON, looking for JSON in text");
+          
+          // Try to extract JSON from the text (could be surrounded by markdown code blocks)
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                            text.match(/```\s*([\s\S]*?)\s*```/) || 
+                            text.match(/(\{[\s\S]*\})/);
+          
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              const parsedJson = JSON.parse(jsonMatch[1].trim());
+              console.log("Successfully parsed JSON from Gemini response");
+              return parsedJson;
+            } catch (jsonErr) {
+              console.error("Failed to parse JSON from response:", jsonErr, "Text:", jsonMatch[1]);
+              return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
+            }
+          } else {
+            console.error("No valid JSON found in response");
             return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
           }
         }
@@ -227,24 +226,26 @@ export class GeminiService {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw critical paths response:", text.substring(0, 200) + "...");
         
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            return JSON.parse(jsonMatch[1]);
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultCriticalPathsResponse();
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
+        try {
+          // First try to parse the entire text as JSON
+          return JSON.parse(text);
+        } catch (err) {
+          console.log("Could not parse entire text as JSON, looking for JSON in text");
+          
+          // Try to extract JSON from the text
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                            text.match(/```\s*([\s\S]*?)\s*```/) || 
+                            text.match(/(\{[\s\S]*\})/);
+          
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              return JSON.parse(jsonMatch[1].trim());
+            } catch (jsonErr) {
+              console.error("Failed to parse JSON from response:", jsonErr);
+              return this.getDefaultCriticalPathsResponse();
+            }
+          } else {
+            console.error("No valid JSON found in response");
             return this.getDefaultCriticalPathsResponse();
           }
         }
@@ -341,7 +342,7 @@ export class GeminiService {
               "source": "string (source node id)",
               "target": "string (target node id)",
               "type": "string (dependency type: imports, uses, extends, etc.)",
-              "strength": number (1-5, indicating how tightly coupled)",
+              "strength": number (1-5, indicating how tightly coupled),
               "description": "string (details about this relationship)"
             }
           ]
@@ -370,24 +371,26 @@ export class GeminiService {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw dependency graph response:", text.substring(0, 200) + "...");
         
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            return JSON.parse(jsonMatch[1]);
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultDependencyGraphResponse();
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
+        try {
+          // First try to parse the entire text as JSON
+          return JSON.parse(text);
+        } catch (err) {
+          console.log("Could not parse entire text as JSON, looking for JSON in text");
+          
+          // Try to extract JSON from the text
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                            text.match(/```\s*([\s\S]*?)\s*```/) || 
+                            text.match(/(\{[\s\S]*\})/);
+          
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              return JSON.parse(jsonMatch[1].trim());
+            } catch (jsonErr) {
+              console.error("Failed to parse JSON from response:", jsonErr);
+              return this.getDefaultDependencyGraphResponse();
+            }
+          } else {
+            console.error("No valid JSON found in response");
             return this.getDefaultDependencyGraphResponse();
           }
         }
@@ -464,26 +467,16 @@ export class GeminiService {
       {
         "title": "string (name of the tutorial)",
         "overview": "string (what the tutorial covers and why it matters)",
-        "learningObjectives": ["string (what the developer will learn)"],
         "prerequisites": ["string (skills or knowledge needed)"],
-        "estimatedTime": "string (time to complete, e.g. '30 minutes')",
         "steps": [
           {
             "title": "string (step title)",
             "description": "string (detailed explanation)",
             "codeExample": "string (relevant code snippet)",
-            "explanation": "string (explanation of the code and concepts)",
-            "keyTakeaways": ["string (important points to remember)"],
-            "commonMistakes": ["string (pitfalls to avoid)"],
-            "checkpointQuestion": {
-              "question": "string (question to test understanding)",
-              "answer": "string (correct answer)",
-              "hint": "string (hint if they get stuck)"
-            }
+            "explanation": "string (explanation of the code and concepts)"
           }
         ],
-        "additionalNotes": "string (important things to remember)",
-        "furtherLearning": ["string (resources for more learning)"]
+        "additionalNotes": "string (important things to remember)"
       }
       
       Make your tutorial practical, focused, and tailored to a ${workflow.role || 'developer'} developer.
@@ -501,24 +494,28 @@ export class GeminiService {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw tutorial response:", text.substring(0, 200) + "...");
         
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            return JSON.parse(jsonMatch[1]);
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultTutorialResponse(workflow.role);
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
+        try {
+          // First try to parse the entire text as JSON
+          return JSON.parse(text);
+        } catch (err) {
+          console.log("Could not parse entire text as JSON, looking for JSON in text");
+          
+          // Try to extract JSON from the text
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                            text.match(/```\s*([\s\S]*?)\s*```/) || 
+                            text.match(/(\{[\s\S]*\})/);
+          
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              const jsonText = jsonMatch[1].trim();
+              console.log("Extracted JSON text:", jsonText.substring(0, 100) + "...");
+              return JSON.parse(jsonText);
+            } catch (jsonErr) {
+              console.error("Failed to parse JSON from response:", jsonErr);
+              return this.getDefaultTutorialResponse(workflow.role);
+            }
+          } else {
+            console.error("No valid JSON found in response");
             return this.getDefaultTutorialResponse(workflow.role);
           }
         }
@@ -538,11 +535,6 @@ export class GeminiService {
     return {
       title: `Getting Started for ${role || 'Developer'}s`,
       overview: "This tutorial provides an introduction to the repository structure and key components.",
-      learningObjectives: [
-        "Understand the overall architecture",
-        "Identify key components and their relationships",
-        "Learn how to navigate the codebase effectively"
-      ],
       prerequisites: [
         "Basic understanding of web development",
         "Familiarity with JavaScript/TypeScript"
@@ -683,24 +675,26 @@ const MyComponent = () => {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw AST analysis response:", text.substring(0, 200) + "...");
         
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            return JSON.parse(jsonMatch[1]);
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultASTAnalysisResponse();
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
+        try {
+          // First try to parse the entire text as JSON
+          return JSON.parse(text);
+        } catch (err) {
+          console.log("Could not parse entire text as JSON, looking for JSON in text");
+          
+          // Try to extract JSON from the text
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                            text.match(/```\s*([\s\S]*?)\s*```/) || 
+                            text.match(/(\{[\s\S]*\})/);
+          
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              return JSON.parse(jsonMatch[1].trim());
+            } catch (jsonErr) {
+              console.error("Failed to parse JSON from response:", jsonErr);
+              return this.getDefaultASTAnalysisResponse();
+            }
+          } else {
+            console.error("No valid JSON found in response");
             return this.getDefaultASTAnalysisResponse();
           }
         }
@@ -804,9 +798,12 @@ const MyComponent = () => {
       2. Be specific and reference actual files, functions, or patterns
       3. Provide code examples when appropriate
       4. If you're unsure about something, be honest about limitations
+      5. Format your response using plain text with minimal formatting
+      6. Do not use markdown formatting like asterisks for bold or italics
+      7. Use simple plain text for headers and bullet points
       
       Your response should be helpful, accurate, and focus on helping the user understand the codebase better.
-      Format your response in a clear, readable way with markdown formatting where appropriate.
+      Format your response in a clear, readable way with minimal formatting.
     `;
 
     try {
@@ -868,158 +865,4 @@ const MyComponent = () => {
       4. Focus on helping new developers get up to speed quickly
       
       OUTPUT FORMAT:
-      Provide your documentation as a JSON object with the following structure:
-      {
-        "title": "string (documentation title)",
-        "version": "string (e.g. '1.0.0')",
-        "generatedDate": "string (current date)",
-        "sections": [
-          {
-            "title": "string (section title)",
-            "content": "string (markdown content)",
-            "subsections": [
-              {
-                "title": "string (subsection title)",
-                "content": "string (markdown content)"
-              }
-            ]
-          }
-        ],
-        "markdownContent": "string (complete markdown document)"
-      }
-    `;
-
-    try {
-      console.log("Sending documentation request to Gemini");
-      const result = await this.generateContent(prompt);
-      console.log("Received documentation response");
-      
-      // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-        const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw documentation response:", text.substring(0, 200) + "...");
-        
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            return JSON.parse(jsonMatch[1]);
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
-            return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
-          }
-        }
-      }
-      
-      return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
-    } catch (error) {
-      console.error("Error in generateDocumentation:", error);
-      return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
-    }
-  }
-
-  /**
-   * Default documentation response when API fails
-   */
-  private getDefaultDocumentationResponse(repoName: string = 'Repository'): any {
-    const currentDate = new Date().toISOString().split('T')[0];
-    
-    return {
-      title: `${repoName} Documentation`,
-      version: "1.0.0",
-      generatedDate: currentDate,
-      sections: [
-        {
-          title: "Introduction",
-          content: `# Introduction to ${repoName}\n\nThis documentation provides an overview of the ${repoName} codebase, its architecture, and key components.`,
-          subsections: []
-        },
-        {
-          title: "Architecture Overview",
-          content: "# Architecture Overview\n\nThis section describes the overall architecture of the application.",
-          subsections: [
-            {
-              title: "System Components",
-              content: "## System Components\n\nThe system consists of the following key components:\n\n- Frontend Layer\n- Service Layer\n- Data Access Layer"
-            }
-          ]
-        },
-        {
-          title: "Getting Started",
-          content: "# Getting Started\n\nThis section helps new developers get started with the codebase.",
-          subsections: [
-            {
-              title: "Setup and Installation",
-              content: "## Setup and Installation\n\n1. Clone the repository\n2. Install dependencies\n3. Run the development server"
-            }
-          ]
-        },
-        {
-          title: "Key Workflows",
-          content: "# Key Workflows\n\nThis section describes the most important workflows in the application.",
-          subsections: []
-        }
-      ],
-      markdownContent: `# ${repoName} Documentation\n\n## Introduction\n\nThis documentation provides an overview of the ${repoName} codebase, its architecture, and key components.\n\n## Architecture Overview\n\nThis section describes the overall architecture of the application.\n\n### System Components\n\nThe system consists of the following key components:\n\n- Frontend Layer\n- Service Layer\n- Data Access Layer\n\n## Getting Started\n\nThis section helps new developers get started with the codebase.\n\n### Setup and Installation\n\n1. Clone the repository\n2. Install dependencies\n3. Run the development server\n\n## Key Workflows\n\nThis section describes the most important workflows in the application.`
-    };
-  }
-
-  /**
-   * Core method to call Gemini API
-   */
-  private async generateContent(prompt: string): Promise<any> {
-    const url = `${this.baseUrl}?key=${this.apiKey}`;
-    
-    try {
-      console.log("Calling Gemini API");
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: prompt }]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            topK: 32,
-            topP: 0.95,
-            maxOutputTokens: 4096
-            // Removed responseMimeType: "application/json" as it's causing the 400 error
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        console.error(`API request failed with status ${response.status}`);
-        const responseText = await response.text();
-        console.error(`Response: ${responseText}`);
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error calling Gemini API:", error);
-      throw error;
-    }
-  }
-}
-
-// Create and export a singleton instance with the API key
-export const geminiService = new GeminiService('AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');
+      Provide your documentation as a JSON object with

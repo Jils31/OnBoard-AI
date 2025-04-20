@@ -1,8 +1,18 @@
 
-import React from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, ArrowRightLeft } from "lucide-react";
+import { AlertCircle, ArrowRightLeft, Info } from "lucide-react";
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  MarkerType
+} from 'react-flow-renderer';
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DependencyGraphProps {
   data: any;
@@ -10,42 +20,124 @@ interface DependencyGraphProps {
 }
 
 const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
-  // Use mock data if real data is not available yet
-  const dependencyGraph = data?.dependencyGraph || {
-    nodes: [
-      { id: "n1", label: "App", type: "component" },
-      { id: "n2", label: "UserContext", type: "context" },
-      { id: "n3", label: "AuthService", type: "service" },
-      { id: "n4", label: "ApiService", type: "service" },
-      { id: "n5", label: "Dashboard", type: "component" },
-      { id: "n6", label: "DataProvider", type: "context" },
-      { id: "n7", label: "UserProfile", type: "component" },
-      { id: "n8", label: "Utils", type: "utility" },
-    ],
-    edges: [
-      { source: "n1", target: "n2" },
-      { source: "n1", target: "n5" },
-      { source: "n2", target: "n3" },
-      { source: "n3", target: "n4" },
-      { source: "n5", target: "n6" },
-      { source: "n6", target: "n4" },
-      { source: "n5", target: "n7" },
-      { source: "n7", target: "n2" },
-      { source: "n4", target: "n8" },
-      { source: "n6", target: "n8" },
-    ]
-  };
-  
-  const circularDependencies = data?.circularDependencies || [
-    ["UserContext", "UserProfile", "Dashboard", "UserContext"],
-    ["ApiService", "DataProvider", "ApiService"]
-  ];
-  
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [isGraphReady, setIsGraphReady] = useState(false);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  // Convert dependency graph data to ReactFlow format
+  const createDependencyGraph = useCallback(() => {
+    if (!data?.dependencyGraph?.nodes || !data?.dependencyGraph?.edges) {
+      console.log("No dependency graph data available, using default");
+      return { nodes: [], edges: [] };
+    }
+
+    console.log("Creating dependency graph with data:", data.dependencyGraph);
+
+    // Group colors for different node types
+    const groupColors: Record<string, string> = {
+      core: '#3b82f6',     // blue
+      ui: '#3b82f6',       // blue
+      component: '#3b82f6', // blue
+      data: '#10b981',     // green
+      service: '#10b981',  // green
+      helpers: '#f59e0b',  // yellow
+      utility: '#f59e0b',  // yellow
+      unknown: '#9ca3af',  // gray
+    };
+
+    // Create nodes
+    const flowNodes = data.dependencyGraph.nodes.map((node: any, index: number) => {
+      const groupKey = node.group?.toLowerCase() || 'unknown';
+      const type = node.type?.toLowerCase() || 'unknown';
+      
+      // Calculate color based on group or type
+      const color = groupColors[groupKey] || groupColors[type] || groupColors.unknown;
+      
+      return {
+        id: node.id || `node-${index}`,
+        position: { 
+          x: 150 + (index % 3) * 250, 
+          y: 100 + Math.floor(index / 3) * 150 
+        },
+        data: { 
+          label: node.label || `Node ${index + 1}`,
+          type: node.type || 'component',
+          size: node.size || 5
+        },
+        style: {
+          width: Math.max(50, (node.size || 5) * 15),
+          height: Math.max(50, (node.size || 5) * 15),
+          backgroundColor: `${color}20`,
+          border: `1px solid ${color}`,
+          borderRadius: '50%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: '12px',
+          textAlign: 'center',
+          padding: '10px',
+        },
+      };
+    });
+
+    // Create edges
+    const flowEdges = data.dependencyGraph.edges.map((edge: any, index: number) => {
+      const isCircular = data.circularDependencies?.some((cycle: string[]) => 
+        cycle.includes(edge.source) && cycle.includes(edge.target)
+      );
+
+      return {
+        id: `edge-${index}`,
+        source: edge.source,
+        target: edge.target,
+        label: edge.description || '',
+        labelStyle: { fontSize: '8px', fill: '#666' },
+        style: { 
+          stroke: isCircular ? '#f59e0b' : '#aaa',
+          strokeDasharray: isCircular ? '5 5' : 'none',
+          strokeWidth: Math.max(1, edge.strength || 1),
+        },
+        markerEnd: {
+          type: MarkerType.Arrow,
+          width: 15,
+          height: 15,
+          color: isCircular ? '#f59e0b' : '#aaa',
+        },
+        animated: isCircular,
+      };
+    });
+
+    return { nodes: flowNodes, edges: flowEdges };
+  }, [data]);
+
+  // Initialize or update the graph when data changes
+  useEffect(() => {
+    try {
+      const { nodes: flowNodes, edges: flowEdges } = createDependencyGraph();
+      
+      if (flowNodes.length > 0 && flowEdges.length > 0) {
+        setNodes(flowNodes);
+        setEdges(flowEdges);
+        setIsGraphReady(true);
+      } else {
+        console.log("Graph data is empty, using placeholder");
+        setIsGraphReady(false);
+      }
+    } catch (error) {
+      console.error("Error creating dependency graph:", error);
+      setIsGraphReady(false);
+    }
+  }, [data, createDependencyGraph, setNodes, setEdges]);
+
+  // Extract recommendations and circular dependencies
   const recommendations = data?.recommendations || [
     "Extract shared logic from ApiService and DataProvider into a separate utility",
     "Consider using dependency injection to reduce tight coupling",
-    "Refactor circular dependencies between UserContext and UserProfile"
+    "Refactor circular dependencies between components"
   ];
+
+  const circularDependencies = data?.circularDependencies || [];
 
   return (
     <div className="space-y-6">
@@ -58,62 +150,56 @@ const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
         </CardHeader>
         <CardContent>
           <div className="border rounded-md p-4 bg-gray-50 dark:bg-gray-800 mb-6">
-            <h3 className="font-medium mb-4">Module Dependencies</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium">Module Dependencies</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      This graph shows module dependencies. Nodes represent modules and edges represent dependencies.
+                      Circular dependencies are highlighted with dotted lines.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             
-            {/* This would be replaced with a real visualization component */}
-            <div className="h-80 rounded-md bg-white dark:bg-gray-700 border relative">
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                <p className="text-center">
-                  Interactive dependency graph would render here using react-flow-renderer or D3.js.<br />
-                  Nodes represent modules and edges represent dependencies.
-                </p>
-              </div>
-              
-              {/* Basic visualization mockup */}
-              <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
-                {/* Circles representing modules */}
-                <circle cx="150" cy="100" r="40" fill="#3b82f6" fillOpacity="0.2" stroke="#3b82f6" />
-                <text x="150" y="100" textAnchor="middle" fill="currentColor">App</text>
-                
-                <circle cx="300" cy="100" r="40" fill="#3b82f6" fillOpacity="0.2" stroke="#3b82f6" />
-                <text x="300" y="100" textAnchor="middle" fill="currentColor">UserContext</text>
-                
-                <circle cx="450" cy="100" r="40" fill="#10b981" fillOpacity="0.2" stroke="#10b981" />
-                <text x="450" y="100" textAnchor="middle" fill="currentColor">AuthService</text>
-                
-                <circle cx="600" cy="100" r="40" fill="#10b981" fillOpacity="0.2" stroke="#10b981" />
-                <text x="600" y="100" textAnchor="middle" fill="currentColor">ApiService</text>
-                
-                <circle cx="150" cy="250" r="40" fill="#3b82f6" fillOpacity="0.2" stroke="#3b82f6" />
-                <text x="150" y="250" textAnchor="middle" fill="currentColor">Dashboard</text>
-                
-                <circle cx="300" cy="250" r="40" fill="#3b82f6" fillOpacity="0.2" stroke="#3b82f6" />
-                <text x="300" y="250" textAnchor="middle" fill="currentColor">DataProvider</text>
-                
-                <circle cx="450" cy="250" r="40" fill="#3b82f6" fillOpacity="0.2" stroke="#3b82f6" />
-                <text x="450" y="250" textAnchor="middle" fill="currentColor">UserProfile</text>
-                
-                <circle cx="600" cy="250" r="40" fill="#f59e0b" fillOpacity="0.2" stroke="#f59e0b" />
-                <text x="600" y="250" textAnchor="middle" fill="currentColor">Utils</text>
-                
-                {/* Arrows between modules */}
-                <line x1="190" y1="100" x2="260" y2="100" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="340" y1="100" x2="410" y2="100" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="490" y1="100" x2="560" y2="100" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="150" y1="140" x2="150" y2="210" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="190" y1="250" x2="260" y2="250" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="340" y1="250" x2="410" y2="250" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="340" y1="250" x2="600" y2="210" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="600" y1="140" x2="600" y2="210" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-                <line x1="450" y1="210" x2="340" y2="120" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#arrowhead)" strokeDasharray="5,5" />
-                
-                {/* Define arrowhead marker */}
-                <defs>
-                  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                    <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
-                  </marker>
-                </defs>
-              </svg>
+            <div ref={reactFlowWrapper} className="h-96 rounded-md bg-white dark:bg-gray-700 border">
+              {isGraphReady ? (
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  fitView
+                  attributionPosition="top-right"
+                  className="bg-white dark:bg-gray-700"
+                >
+                  <MiniMap 
+                    nodeStrokeColor={(n) => {
+                      return n.style?.border?.replace('1px solid ', '') || '#eee';
+                    }}
+                    nodeColor={(n) => {
+                      return n.style?.backgroundColor || '#fff';
+                    }}
+                    nodeBorderRadius={50}
+                  />
+                  <Controls />
+                  <Background color="#aaa" gap={16} />
+                </ReactFlow>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <p className="text-center">
+                    Dependency graph could not be generated from the current repository data.<br />
+                    Try analyzing a repository with more code files.
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="flex flex-wrap gap-2 mt-4">
@@ -134,7 +220,7 @@ const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
                 <span className="text-sm">Direct dependency</span>
               </div>
               <div className="flex items-center">
-                <div className="w-8 h-0 border-t border-gray-400 border-dashed mr-1"></div>
+                <div className="w-8 h-0 border-t border-yellow-500 border-dashed mr-1"></div>
                 <span className="text-sm">Circular dependency</span>
               </div>
             </div>
@@ -153,7 +239,7 @@ const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
                   Circular dependencies can lead to tight coupling and make code harder to maintain and test.
                 </p>
                 
-                {circularDependencies.map((cycle, index) => (
+                {circularDependencies.map((cycle: string[], index: number) => (
                   <div key={index} className="flex items-center mb-2 overflow-x-auto pb-2">
                     {cycle.map((module, i) => (
                       <React.Fragment key={i}>
@@ -177,7 +263,7 @@ const DependencyGraph = ({ data, codeAnalysis }: DependencyGraphProps) => {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {recommendations.map((recommendation, index) => (
+                {recommendations.map((recommendation: string, index: number) => (
                   <li key={index} className="flex items-start">
                     <div className="h-5 w-5 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-800 dark:text-green-300 text-xs font-medium mr-2 mt-0.5">
                       {index + 1}
