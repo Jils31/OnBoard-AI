@@ -16,8 +16,8 @@ interface TutorialViewProps {
 const TutorialView = ({ data, role }: TutorialViewProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   
-  // Use mock data if real data is not available yet
-  const tutorial = data || {
+  // Default tutorial data to handle when data is undefined or missing required properties
+  const defaultTutorial = {
     title: "Authentication Workflow",
     overview: "This tutorial walks through the authentication flow in the application, covering login, session management, and protected routes.",
     prerequisites: [
@@ -40,200 +40,15 @@ const initialState = {
 };
 
 // Create the auth context
-export const AuthContext = createContext(initialState);
-
-// Auth reducer to handle state changes
-function authReducer(state, action) {
-  switch (action.type) {
-    case 'LOGIN_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        loading: false
-      };
-    case 'LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        loading: false
-      };
-    // More cases...
-    default:
-      return state;
-  }
-}
-
-// Auth provider component
-export function AuthProvider({ children }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
-  
-  // Provide the context value
-  return (
-    <AuthContext.Provider value={{ ...state, dispatch }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-// Custom hook for using auth context
-export function useAuth() {
-  return useContext(AuthContext);
-}`,
-        explanation: "This code establishes the authentication context using React's Context API and useReducer hook. It creates a central store for user authentication state and provides a way to update it through dispatched actions. The useAuth custom hook makes it easy to access this context from any component."
-      },
-      {
-        title: "Implementing Login Functionality",
-        description: "Next, we'll see how the login functionality is implemented using the authentication service and context.",
-        codeExample: `import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { login } from '../services/authService';
-
-function LoginForm() {
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const { dispatch } = useAuth();
-  
-  const handleChange = (e) => {
-    setCredentials({
-      ...credentials,
-      [e.target.name]: e.target.value
-    });
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Call authentication service
-      const response = await login(credentials);
-      
-      // Store token in localStorage
-      localStorage.setItem('token', response.token);
-      
-      // Update auth context
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: response.user
-      });
-    } catch (err) {
-      setError(err.message || 'Failed to login');
-      dispatch({
-        type: 'LOGIN_FAILURE',
-        payload: err.message
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Form JSX...
-}`,
-        explanation: "The login form component manages its own local state for the form inputs while also interacting with the global authentication context. When a user submits their credentials, the component calls the authentication service, stores the returned JWT token in localStorage for persistence, and updates the auth context with the user information. Error handling ensures users get feedback if something goes wrong."
-      },
-      {
-        title: "Creating Protected Routes",
-        description: "Now we'll see how to create protected routes that require authentication.",
-        codeExample: `import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-
-// Component that renders children only if user is authenticated
-function ProtectedRoute() {
-  const { isAuthenticated, loading } = useAuth();
-  
-  // Show loading indicator while checking authentication
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Render the protected content
-  return <Outlet />;
-}
-
-// Usage in router
-/*
-<Routes>
-  <Route path="/login" element={<LoginPage />} />
-  <Route element={<ProtectedRoute />}>
-    <Route path="/dashboard" element={<Dashboard />} />
-    <Route path="/profile" element={<Profile />} />
-  </Route>
-</Routes>
-*/`,
-        explanation: "The ProtectedRoute component serves as a wrapper that checks if a user is authenticated before rendering protected content. It uses the useAuth hook to access the authentication state from the context. If the user isn't authenticated, they're redirected to the login page. This component works with React Router's nested routes using the Outlet component to render the child routes when authentication is successful."
-      },
-      {
-        title: "Authentication Service Implementation",
-        description: "Finally, let's look at the authentication service that handles API calls.",
-        codeExample: `import axios from 'axios';
-
-const API_URL = '/api/auth';
-
-// Create axios instance with defaults
-const authClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add token to requests if available
-authClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = \`Bearer \${token}\`;
-  }
-  return config;
-});
-
-// Login user
-export const login = async (credentials) => {
-  try {
-    const response = await authClient.post('/login', credentials);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || 'Login failed');
-  }
-};
-
-// Register user
-export const register = async (userData) => {
-  try {
-    const response = await authClient.post('/register', userData);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || 'Registration failed');
-  }
-};
-
-// Logout user
-export const logout = () => {
-  localStorage.removeItem('token');
-};
-
-// Get current user
-export const getCurrentUser = async () => {
-  try {
-    const response = await authClient.get('/me');
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to fetch user');
-  }
-};`,
-        explanation: "The authentication service provides an abstraction layer for all API calls related to authentication. It uses axios for HTTP requests and includes interceptors to automatically add the JWT token to requests when available. The service handles login, registration, logout, and fetching the current user's data, while also providing appropriate error handling."
+export const AuthContext = createContext(initialState);`,
+        explanation: "This code establishes the authentication context using React's Context API and useReducer hook."
       }
     ],
-    additionalNotes: "This authentication flow follows best practices for React applications. The separation of concerns between the AuthContext (state management), AuthService (API calls), and components ensures the code is maintainable and testable. For production applications, consider adding token refresh functionality and more robust error handling."
+    additionalNotes: "This authentication flow follows best practices for React applications."
   };
+  
+  // Use data if provided and valid, otherwise use default tutorial
+  const tutorial = data && data.title && data.steps && Array.isArray(data.steps) ? data : defaultTutorial;
   
   const handleNextStep = () => {
     if (currentStep < tutorial.steps.length - 1) {
@@ -251,6 +66,11 @@ export const getCurrentUser = async () => {
     }
   };
   
+  // Make sure we have valid prerequisites array
+  const prerequisites = tutorial.prerequisites && Array.isArray(tutorial.prerequisites) 
+    ? tutorial.prerequisites 
+    : ["No prerequisites specified"];
+  
   return (
     <div className="space-y-6">
       <Card className="border-blue-100 dark:border-blue-900">
@@ -267,7 +87,7 @@ export const getCurrentUser = async () => {
             
             <h3 className="font-medium mt-4 mb-2">Prerequisites</h3>
             <ul className="list-disc pl-5 space-y-1">
-              {tutorial.prerequisites.map((prereq, index) => (
+              {prerequisites.map((prereq, index) => (
                 <li key={index} className="text-gray-700 dark:text-gray-300">{prereq}</li>
               ))}
             </ul>
