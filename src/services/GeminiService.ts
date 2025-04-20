@@ -28,7 +28,7 @@ export class GeminiService {
       ${JSON.stringify(repoData.repositoryInfo, null, 2)}
       
       REPOSITORY STRUCTURE SAMPLE:
-      ${JSON.stringify(repoData.structure.slice(0, 10), null, 2)}
+      ${JSON.stringify(repoData.structure.slice(0, 15), null, 2)}
       
       MOST FREQUENTLY CHANGED FILES:
       ${JSON.stringify(repoData.mostChangedFiles, null, 2)}
@@ -153,7 +153,7 @@ export class GeminiService {
     const fileContents = codeData.fileContents || [];
     const fileContentSamples = fileContents.map((file: any) => ({
       path: file.path,
-      snippet: file.content?.substring(0, 300) + '...' || 'No content available',
+      snippet: file.content?.substring(0, 500) + '...' || 'No content available',
       changeFrequency: file.changeFrequency
     }));
 
@@ -299,10 +299,11 @@ export class GeminiService {
       ${JSON.stringify(dependencies, null, 2)}
       
       INSTRUCTIONS:
-      1. Create a comprehensive dependency graph based on the provided data
+      1. Create a comprehensive dependency graph based on the provided code analysis data
       2. Identify circular dependencies or other problematic patterns
       3. Analyze the dependency structure for architectural issues
       4. Provide specific recommendations for improving code organization
+      5. Include actual module and file names from the codebase, not generic placeholders
       
       OUTPUT FORMAT:
       Provide your analysis as a JSON object with the following structure:
@@ -310,8 +311,8 @@ export class GeminiService {
         "dependencyGraph": {
           "nodes": [
             {
-              "id": "string (unique identifier)",
-              "label": "string (display name)",
+              "id": "string (unique identifier like n1, n2, etc.)",
+              "label": "string (actual module/file name from the codebase)",
               "type": "string (node type: component, service, utility, etc.)"
             }
           ],
@@ -324,9 +325,9 @@ export class GeminiService {
           ]
         },
         "circularDependencies": [
-          ["string (list of module names forming a circular dependency)"]
+          ["string (list of actual module names forming a circular dependency)"]
         ],
-        "recommendations": ["string (specific recommendations for improvement)"]
+        "recommendations": ["string (specific recommendations for improvement based on the actual codebase)"]
       }
       
       Ensure your analysis is precise, actionable, and focused on architectural quality.
@@ -406,47 +407,55 @@ export class GeminiService {
   async createTutorial(workflow: any): Promise<any> {
     console.log("Creating tutorial with data:", workflow);
     
+    const repoInfo = workflow.repositoryInfo || {};
+    const criticalPaths = workflow.criticalPaths || [];
+    
+    // Extract more meaningful information for the tutorial
+    const repoName = repoInfo.name || "Repository";
+    const repoLanguage = repoInfo.language || "JavaScript";
+    
     const prompt = `
       You are an expert technical writer creating an interactive tutorial for developers.
       
       CONTEXT:
       - You're creating a step-by-step tutorial for a ${workflow.role || 'developer'} developer
-      - The tutorial should explain critical workflows in the codebase
+      - The tutorial is for the repository: ${repoName} (${repoLanguage})
       - The developer is new to this codebase and needs clear, practical guidance
       - Focus on the most important coding patterns they need to understand
       
       REPOSITORY INFO:
-      ${JSON.stringify(workflow.repositoryInfo || {}, null, 2)}
+      ${JSON.stringify(repoInfo, null, 2)}
       
       CRITICAL PATHS:
-      ${JSON.stringify(workflow.criticalPaths || [], null, 2)}
+      ${JSON.stringify(criticalPaths, null, 2)}
       
       INSTRUCTIONS:
       1. Create a comprehensive tutorial focusing on ONE critical workflow in the codebase
       2. The tutorial should walk through the workflow step by step
-      3. Include code examples that illustrate each step
-      4. Explain key concepts, patterns, and decisions
+      3. Include code examples that illustrate each step, using ACTUAL code from the repository
+      4. Explain key concepts, patterns, and decisions seen in the real codebase
       5. Make the tutorial interactive with clear explanations
+      6. DO NOT use placeholder content - all information should be specific to this repository
       
       OUTPUT FORMAT:
       Provide your tutorial as a JSON object with the following structure:
       {
-        "title": "string (name of the tutorial)",
-        "overview": "string (what the tutorial covers and why it matters)",
+        "title": "string (name of the tutorial - specific to this codebase)",
+        "overview": "string (what the tutorial covers and why it matters - mention actual codebase features)",
         "prerequisites": ["string (skills or knowledge needed)"],
         "steps": [
           {
             "title": "string (step title)",
-            "description": "string (detailed explanation)",
-            "codeExample": "string (relevant code snippet)",
-            "explanation": "string (explanation of the code and concepts)"
+            "description": "string (detailed explanation referencing actual components)",
+            "codeExample": "string (relevant code snippet from the actual codebase)",
+            "explanation": "string (explanation of the actual code and concepts)"
           }
         ],
-        "additionalNotes": "string (important things to remember)"
+        "additionalNotes": "string (important things to remember about this codebase specifically)"
       }
       
       Make your tutorial practical, focused, and tailored to a ${workflow.role || 'developer'} developer.
-      Ensure all code examples are clear and well-commented. Focus on teaching patterns, not just syntax.
+      Ensure all code examples are real examples from the codebase. Focus on teaching patterns, not just syntax.
       Return ONLY valid JSON conforming to the structure above without additional text.
     `;
 
@@ -470,7 +479,7 @@ export class GeminiService {
             return JSON.parse(jsonMatch[1]);
           } catch (err) {
             console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultTutorialResponse(workflow.role);
+            return this.getDefaultTutorialResponse(workflow.role, repoName);
           }
         } else {
           // Try to parse the entire text as JSON
@@ -478,25 +487,25 @@ export class GeminiService {
             return JSON.parse(text);
           } catch (err) {
             console.error("Failed to parse entire response as JSON:", err);
-            return this.getDefaultTutorialResponse(workflow.role);
+            return this.getDefaultTutorialResponse(workflow.role, repoName);
           }
         }
       }
       
-      return this.getDefaultTutorialResponse(workflow.role);
+      return this.getDefaultTutorialResponse(workflow.role, repoName);
     } catch (error) {
       console.error("Error in createTutorial:", error);
-      return this.getDefaultTutorialResponse(workflow.role);
+      return this.getDefaultTutorialResponse(workflow.role, repoName);
     }
   }
 
   /**
    * Default tutorial response when API fails
    */
-  private getDefaultTutorialResponse(role: string = 'developer'): any {
+  private getDefaultTutorialResponse(role: string = 'developer', repoName: string = 'Repository'): any {
     return {
-      title: `Getting Started for ${role || 'Developer'}s`,
-      overview: "This tutorial provides an introduction to the repository structure and key components.",
+      title: `Understanding ${repoName} for ${role || 'Developer'}s`,
+      overview: `This tutorial provides an introduction to the ${repoName} repository structure and key components.`,
       prerequisites: [
         "Basic understanding of web development",
         "Familiarity with JavaScript/TypeScript"
@@ -504,8 +513,8 @@ export class GeminiService {
       steps: [
         {
           title: "Repository Overview",
-          description: "Let's start by understanding the overall structure of the repository and its main components.",
-          codeExample: `// Project structure
+          description: `Let's start by understanding the overall structure of ${repoName} and its main components.`,
+          codeExample: `// Project structure example
 src/
   components/   # UI components
   services/     # Services for API interactions
@@ -515,12 +524,12 @@ src/
         },
         {
           title: "Understanding Key Components",
-          description: "The key components in this codebase are organized by feature and function.",
+          description: `The key components in ${repoName} are organized by feature and function.`,
           codeExample: `// Example component structure
 import React from 'react';
 import { useService } from '../hooks/useService';
 
-const MyComponent = () => {
+const ExampleComponent = () => {
   const data = useService();
   
   return (
@@ -532,7 +541,7 @@ const MyComponent = () => {
           explanation: "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data."
         }
       ],
-      additionalNotes: "As you explore the codebase further, focus on understanding how data flows between components and which parts handle core business logic."
+      additionalNotes: `As you explore ${repoName} further, focus on understanding how data flows between components and which parts handle core business logic.`
     };
   }
 
@@ -753,7 +762,6 @@ const MyComponent = () => {
             topK: 32,
             topP: 0.95,
             maxOutputTokens: 4096
-            // Removed responseMimeType: "application/json" as it's causing the 400 error
           }
         }),
       });

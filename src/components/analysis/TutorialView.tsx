@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, ChevronRight, Lightbulb, Bookmark } from "lucide-react";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface TutorialViewProps {
   data: any;
@@ -95,6 +95,54 @@ src/
       window.scrollTo(0, 0);
     }
   };
+
+  // Get language for current code example
+  const getLanguageFromCodeExample = (codeExample: string) => {
+    const extensionMap: { [key: string]: string } = {
+      'tsx': 'typescript',
+      'ts': 'typescript',
+      'jsx': 'javascript',
+      'js': 'javascript',
+      'css': 'css',
+      'html': 'html',
+      'json': 'json',
+    };
+
+    // Check for import statements which usually indicate TypeScript/JavaScript
+    if (codeExample.includes('import ') || codeExample.includes('export ')) {
+      return codeExample.includes('React') ? 'typescript' : 'javascript';
+    }
+
+    // Check for file path structure indicators
+    if (codeExample.match(/src\/.*\.(tsx?|jsx?)$/)) {
+      return 'typescript';
+    }
+
+    // Look for markdown-style code block language indicators
+    const langMatch = codeExample.match(/^```(\w+)/);
+    if (langMatch) {
+      return langMatch[1];
+    }
+
+    // Check for file extensions in comments
+    const fileExtMatch = codeExample.match(/\/\/\s*.*\.(tsx?|jsx?|css|html|json)/i);
+    if (fileExtMatch) {
+      const ext = fileExtMatch[1].toLowerCase();
+      return extensionMap[ext] || 'javascript';
+    }
+
+    // Default to JavaScript for code that looks like code
+    if (codeExample.match(/{|function|const|let|var|=>|class/)) {
+      return 'javascript';
+    }
+
+    // If it's a directory structure
+    if (codeExample.match(/\w+\//)) {
+      return 'bash';
+    }
+
+    return 'javascript';
+  };
   
   return (
     <div className="space-y-6">
@@ -159,20 +207,22 @@ src/
               </p>
             </div>
             
-            <div className="border rounded-md overflow-hidden">
-              <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b">
-                <div className="flex justify-between items-center">
-                  <div className="font-medium">Code Example</div>
-                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    {tutorial.steps[currentStep]?.title || 'Example'}
-                  </Badge>
-                </div>
+            <div className="relative border rounded-md overflow-hidden">
+              <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b flex justify-between items-center">
+                <div className="font-medium">Code Example</div>
+                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                  {tutorial.steps[currentStep]?.title || 'Example'}
+                </Badge>
               </div>
               <SyntaxHighlighter
-                language="javascript"
-                style={docco}
-                className="rounded-b-md max-h-96"
+                language={getLanguageFromCodeExample(tutorial.steps[currentStep]?.codeExample || '')}
+                style={oneDark}
                 showLineNumbers
+                customStyle={{ 
+                  margin: 0,
+                  borderRadius: '0 0 0.375rem 0.375rem',
+                  maxHeight: '24rem'
+                }}
               >
                 {tutorial.steps[currentStep]?.codeExample || '// No code example available'}
               </SyntaxHighlighter>
