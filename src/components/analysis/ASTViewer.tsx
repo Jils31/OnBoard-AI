@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GitBranch, FileCode, Grid2X2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import Tree from 'react-d3-tree';
 import { useToast } from "@/hooks/use-toast";
 
