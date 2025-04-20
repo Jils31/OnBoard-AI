@@ -29,7 +29,7 @@ const plans = [
   {
     name: "Premium",
     description: "For professional developers",
-    price: "$7.99",
+    price: "$19.99",
     period: "per month",
     features: [
       "7 repository analyses per month",
@@ -45,7 +45,7 @@ const plans = [
   {
     name: "Unlimited",
     description: "For teams and organizations",
-    price: "$19.99",
+    price: "$99.99",
     period: "per month",
     features: [
       "30 repository analyses per month",
