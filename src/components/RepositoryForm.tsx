@@ -50,9 +50,10 @@ const RepositoryForm = () => {
         description: `Starting analysis for ${owner}/${repo}...`,
       });
       
-      // Navigate to the analysis page
+      // Navigate to the analysis page with fresh parameters to ensure new analysis
       const encodedUrl = encodeURIComponent(repoUrl);
-      navigate(`/analysis?repo=${encodedUrl}&role=${role}`);
+      const timestamp = Date.now(); // Add timestamp to force fresh analysis
+      navigate(`/analysis?repo=${encodedUrl}&role=${role}&t=${timestamp}`);
       
     } catch (error) {
       console.error("Error validating repository:", error);

@@ -70,17 +70,16 @@ const ArchitectureMap = ({ data }: { data: any }) => {
           <div className="border rounded-md p-4 bg-gray-50 dark:bg-gray-800">
             <h3 className="font-medium mb-4">Architecture Diagram</h3>
             
-            {/* This would be replaced with a real visualization component */}
             <div className="h-80 rounded-md bg-white dark:bg-gray-700 border relative mb-6">
-              {/* Basic visualization mockup based on the provided data */}
+              {/* Dynamic visualization based on the provided data */}
               {systemMap.nodes && systemMap.nodes.length > 0 ? (
                 <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
                   {/* Render nodes as shapes */}
-                  {systemMap.nodes.slice(0, 5).map((node: any, index: number) => {
+                  {systemMap.nodes.slice(0, 12).map((node: any, index: number) => {
                     // Generate positions based on index
-                    const x = 100 + (index % 3) * 250;
-                    const y = 50 + Math.floor(index / 3) * 150;
-                    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+                    const x = 80 + (index % 4) * 180;
+                    const y = 40 + Math.floor(index / 4) * 120;
+                    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
                     const color = colors[index % colors.length];
                     
                     return (
@@ -88,27 +87,29 @@ const ArchitectureMap = ({ data }: { data: any }) => {
                         <rect 
                           x={x} 
                           y={y} 
-                          width={200} 
-                          height={100} 
+                          width={160} 
+                          height={80} 
                           rx={5} 
                           fill={color} 
                           fillOpacity={0.2} 
                           stroke={color} 
                         />
                         <text 
-                          x={x + 100} 
-                          y={y + 50} 
+                          x={x + 80} 
+                          y={y + 35} 
                           textAnchor="middle" 
                           fill="currentColor"
+                          fontSize="12"
+                          fontWeight="bold"
                         >
                           {node.label}
                         </text>
                         <text 
-                          x={x + 100} 
-                          y={y + 75} 
+                          x={x + 80} 
+                          y={y + 55} 
                           textAnchor="middle" 
                           fill="currentColor" 
-                          fontSize="12"
+                          fontSize="10"
                         >
                           {node.type}
                         </text>
@@ -117,37 +118,49 @@ const ArchitectureMap = ({ data }: { data: any }) => {
                   })}
                   
                   {/* Render connections between nodes */}
-                  {systemMap.connections && systemMap.connections.slice(0, 5).map((connection: any, index: number) => {
+                  {systemMap.connections && systemMap.connections.slice(0, 20).map((connection: any, index: number) => {
                     // Find source and target nodes
                     const sourceIndex = systemMap.nodes.findIndex((n: any) => n.id === connection.from);
                     const targetIndex = systemMap.nodes.findIndex((n: any) => n.id === connection.to);
                     
-                    if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex < 5 && targetIndex < 5) {
-                      const sourceX = 100 + (sourceIndex % 3) * 250 + 200;
-                      const sourceY = 50 + Math.floor(sourceIndex / 3) * 150 + 50;
-                      const targetX = 100 + (targetIndex % 3) * 250;
-                      const targetY = 50 + Math.floor(targetIndex / 3) * 150 + 50;
+                    if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex < 12 && targetIndex < 12) {
+                      const sourceX = 80 + (sourceIndex % 4) * 180 + 80;
+                      const sourceY = 40 + Math.floor(sourceIndex / 4) * 120 + 40;
+                      const targetX = 80 + (targetIndex % 4) * 180 + 80;
+                      const targetY = 40 + Math.floor(targetIndex / 4) * 120 + 40;
                       
-                      // Calculate midpoint for label
+                      // Calculate control points for curved lines
+                      const dx = targetX - sourceX;
+                      const dy = targetY - sourceY;
                       const midX = (sourceX + targetX) / 2;
                       const midY = (sourceY + targetY) / 2;
+                      const offset = 40;
+                      
+                      // Create curved path
+                      let path = `M ${sourceX} ${sourceY} Q ${midX + offset} ${midY} ${targetX} ${targetY}`;
+                      
+                      // Calculate label position
+                      const labelX = midX + offset / 2;
+                      const labelY = midY - 10;
                       
                       return (
-                        <g key={`${connection.from}-${connection.to}`}>
+                        <g key={`${connection.from}-${connection.to}-${index}`}>
                           <path 
-                            d={`M ${sourceX} ${sourceY} L ${targetX} ${targetY}`} 
+                            d={path} 
                             stroke="currentColor" 
                             strokeWidth="1.5" 
-                            strokeDasharray="5,5" 
+                            fill="none"
+                            markerEnd="url(#arrowhead)"
                           />
                           <text 
-                            x={midX} 
-                            y={midY - 10} 
+                            x={labelX} 
+                            y={labelY} 
                             textAnchor="middle" 
                             fill="currentColor" 
-                            fontSize="12"
+                            fontSize="10"
+                            className="select-none"
                           >
-                            {connection.label}
+                            {connection.label?.substring(0, 20)}
                           </text>
                         </g>
                       );

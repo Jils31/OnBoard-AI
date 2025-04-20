@@ -29,7 +29,7 @@ export class GeminiService {
       ${JSON.stringify(repoData.repositoryInfo, null, 2)}
       
       REPOSITORY STRUCTURE SAMPLE:
-      ${JSON.stringify(repoData.structure.slice(0, 5), null, 2)}
+      ${JSON.stringify(repoData.structure.slice(0, 10), null, 2)}
       
       MOST FREQUENTLY CHANGED FILES:
       ${JSON.stringify(repoData.mostChangedFiles, null, 2)}
@@ -70,18 +70,19 @@ export class GeminiService {
         "improvements": ["string (list of potential improvements)"]
       }
       
-      Be accurate, detailed, and comprehensive in your analysis. Do not include any explanations outside of the JSON structure.
+      Be accurate, detailed, and comprehensive in your analysis based ONLY on the actual repository data provided.
+      Do not use generic descriptions - tailor your analysis specifically to this repository.
+      Do not include any explanations outside of the JSON structure.
     `;
 
     try {
       console.log("Sending structure analysis request to Gemini");
       const result = await this.generateContent(prompt);
-      console.log("Received structure analysis response:", result);
+      console.log("Received structure analysis response");
       
       // Parse the JSON from the text response
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw Gemini text response:", text);
         
         // Try to extract JSON from the text (could be surrounded by markdown code blocks)
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -90,37 +91,41 @@ export class GeminiService {
         
         if (jsonMatch && jsonMatch[1]) {
           try {
-            return JSON.parse(jsonMatch[1]);
+            const parsedJson = JSON.parse(jsonMatch[1]);
+            console.log("Successfully parsed JSON from Gemini response");
+            return parsedJson;
           } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
-            return this.getDefaultArchitectureResponse();
+            console.error("Failed to parse JSON from response:", err, "Text:", jsonMatch[1]);
+            return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
           }
         } else {
           // Try to parse the entire text as JSON
           try {
-            return JSON.parse(text);
+            const parsedJson = JSON.parse(text);
+            console.log("Successfully parsed JSON from entire Gemini response");
+            return parsedJson;
           } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
-            return this.getDefaultArchitectureResponse();
+            console.error("Failed to parse entire response as JSON:", err, "Text:", text.substring(0, 200) + "...");
+            return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
           }
         }
       }
       
-      return this.getDefaultArchitectureResponse();
+      return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
     } catch (error) {
       console.error("Error in analyzeRepositoryStructure:", error);
-      return this.getDefaultArchitectureResponse();
+      return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
     }
   }
 
   /**
    * Default architecture response when API fails
    */
-  private getDefaultArchitectureResponse(): any {
+  private getDefaultArchitectureResponse(repoName: string): any {
     return {
       architecture: {
         pattern: "Modern Web Application Architecture",
-        description: "Based on the repository structure, this appears to be a modern web application using component-based architecture.",
+        description: `Based on the repository structure of ${repoName}, this appears to be a modern web application using component-based architecture.`,
         mainComponents: ["Frontend Components", "Services", "Utilities"]
       },
       systemMap: {

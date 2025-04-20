@@ -64,12 +64,12 @@ const AnalysisPage = () => {
         // 2. Get repository structure
         console.log("Fetching repository structure...");
         const repoStructure = await githubService.getRepositoryStructure(owner, repo);
-        console.log("Repository structure fetched");
+        console.log("Repository structure fetched", repoStructure);
         
         // 3. Get most changed files
         console.log("Fetching most changed files...");
         const mostChangedFiles = await githubService.getMostChangedFiles(owner, repo, 10);
-        console.log("Most changed files fetched:", mostChangedFiles.length);
+        console.log("Most changed files fetched:", mostChangedFiles);
         
         // 4. Analyze repository structure
         console.log("Analyzing repository structure with AI...");
@@ -78,7 +78,7 @@ const AnalysisPage = () => {
           structure: repoStructure,
           mostChangedFiles: mostChangedFiles
         });
-        console.log("Structure analysis complete");
+        console.log("Structure analysis complete:", structureAnalysis);
         setAnalysisProgress(prev => ({ ...prev, structure: true }));
         
         toast({
@@ -109,7 +109,7 @@ const AnalysisPage = () => {
         let codeAnalysis = { dependencies: [] };
         try {
           codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
-          console.log("Code analysis complete");
+          console.log("Code analysis complete:", codeAnalysis);
         } catch (err) {
           console.error("Error in code analysis:", err);
         }
@@ -122,7 +122,7 @@ const AnalysisPage = () => {
           codeAnalysis,
           role
         });
-        console.log("Critical paths identified");
+        console.log("Critical paths identified:", criticalPathsAnalysis);
         setAnalysisProgress(prev => ({ ...prev, criticalPaths: true }));
         
         toast({
@@ -136,7 +136,7 @@ const AnalysisPage = () => {
           codeAnalysis: codeAnalysis.dependencies,
           repositoryStructure: repoStructure
         });
-        console.log("Dependency graph generated");
+        console.log("Dependency graph generated:", dependencyGraphAnalysis);
         setAnalysisProgress(prev => ({ ...prev, dependencies: true }));
         
         toast({
@@ -151,7 +151,7 @@ const AnalysisPage = () => {
           repositoryInfo: repoInfo,
           role
         });
-        console.log("Tutorials created");
+        console.log("Tutorials created:", tutorialsAnalysis);
         setAnalysisProgress(prev => ({ ...prev, tutorials: true }));
         
         // Combine all analysis results
@@ -169,7 +169,7 @@ const AnalysisPage = () => {
         toast({
           title: "Analysis Complete",
           description: "All insights are ready to explore",
-          variant: "default" // Changed from "success" to "default"
+          variant: "default"
         });
         
         setIsLoading(false);
