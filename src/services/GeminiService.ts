@@ -867,4 +867,4 @@ const MyComponent = () => {
       4. Focus on helping new developers get up to speed quickly
       
       OUTPUT FORMAT:
-      Provide your documentation
+      Provide your documentation as a JSON
