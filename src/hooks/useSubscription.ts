@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+type PlanType = 'free' | 'premium' | 'unlimited';
+
 export const useSubscription = () => {
   const [subscription, setSubscription] = useState<{
-    plan_type: 'free' | 'premium' | 'unlimited';
+    plan_type: PlanType;
     analysisCounts: number;
     analysisLimit: number;
   } | null>(null);
@@ -40,8 +42,15 @@ export const useSubscription = () => {
       return null;
     }
 
+    // Validate that the plan_type is one of the expected values
+    const planType = subscriptionData.plan_type;
+    if (planType !== 'free' && planType !== 'premium' && planType !== 'unlimited') {
+      console.error('Invalid plan type:', planType);
+      return null;
+    }
+
     return {
-      plan_type: subscriptionData.plan_type,
+      plan_type: planType as PlanType,
       analysisCounts: analysisCountData,
       analysisLimit: subscriptionLimitData
     };
