@@ -8,7 +8,12 @@ const ProtectedRoute: React.FC = () => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <LoadingState repo="" progress={{}} />;
+    return <LoadingState repo="" progress={{
+      structure: false,
+      criticalPaths: false,
+      dependencies: false,
+      tutorials: false
+    }} />;
   }
   
   return user ? <Outlet /> : <Navigate to="/auth" replace />;
