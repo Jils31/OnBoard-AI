@@ -8,11 +8,14 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { githubService } from "@/services/GitHubService";
+import { AlertCircle, Loader } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const RepositoryForm = () => {
   const [repoUrl, setRepoUrl] = useState("");
   const [role, setRole] = useState("full-stack");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -28,12 +31,13 @@ const RepositoryForm = () => {
     }
     
     setIsAnalyzing(true);
+    setConnectError(null);
     
     try {
       // Validate the repository URL
       const parsedRepo = githubService.parseRepoUrl(repoUrl);
       if (!parsedRepo) {
-        throw new Error("Invalid GitHub repository URL");
+        throw new Error("Invalid GitHub repository URL. Please use a URL like https://github.com/username/repo");
       }
       
       const { owner, repo } = parsedRepo;
@@ -61,6 +65,15 @@ const RepositoryForm = () => {
       });
     }
   };
+
+  const handleConnectGitHub = () => {
+    setConnectError("GitHub OAuth integration is not implemented yet. Please use the URL option instead.");
+    toast({
+      title: "Feature Not Available",
+      description: "GitHub OAuth integration is coming soon. Please use the URL option for now.",
+      variant: "destructive"
+    });
+  };
   
   return (
     <form onSubmit={handleSubmit}>
@@ -81,16 +94,35 @@ const RepositoryForm = () => {
               required
             />
           </div>
+          
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Enter the full URL of a public GitHub repository to analyze its architecture and code patterns.
+          </div>
         </TabsContent>
         
         <TabsContent value="connect" className="space-y-4">
+          {connectError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Error</AlertTitle>
+              <AlertDescription>
+                {connectError}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-6 text-center">
             <GitHubLogoIcon className="h-8 w-8 mx-auto mb-2" />
             <h3 className="text-lg font-medium mb-2">Connect GitHub Repository</h3>
             <p className="text-gray-500 dark:text-gray-400 mb-4">
               Authorize Onboarding Buddy to access your GitHub repositories
             </p>
-            <Button variant="outline" className="w-full">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleConnectGitHub}
+              type="button"
+            >
               <GitHubLogoIcon className="mr-2 h-4 w-4" />
               Connect to GitHub
             </Button>
@@ -119,7 +151,12 @@ const RepositoryForm = () => {
         className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
         disabled={!repoUrl || isAnalyzing}
       >
-        {isAnalyzing ? "Validating Repository..." : "Analyze Repository"}
+        {isAnalyzing ? (
+          <>
+            <Loader className="mr-2 h-4 w-4 animate-spin" />
+            Validating Repository...
+          </>
+        ) : "Analyze Repository"}
       </Button>
     </form>
   );
