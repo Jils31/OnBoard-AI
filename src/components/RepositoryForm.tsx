@@ -10,6 +10,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { githubService } from "@/services/GitHubService";
 import { AlertCircle, Loader } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSubscription } from "@/hooks/useSubscription";
+import { SubscriptionAlert } from "@/components/SubscriptionAlert";
+import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
 
 const RepositoryForm = () => {
   const [repoUrl, setRepoUrl] = useState("");
@@ -19,12 +22,34 @@ const RepositoryForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  const subscription = useSubscription();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!repoUrl) {
       toast({
         title: "Missing Repository URL",
         description: "Please enter a valid GitHub repository URL.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate subscription
+    if (!subscription) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to analyze repositories.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (subscription.analysisCounts >= subscription.analysisLimit) {
+      toast({
+        title: "Analysis Limit Reached",
+        description: "You have reached your monthly analysis limit. Please upgrade your plan.",
         variant: "destructive"
       });
       return;
@@ -50,9 +75,19 @@ const RepositoryForm = () => {
         description: `Starting analysis for ${owner}/${repo}...`,
       });
       
-      // Navigate to the analysis page with fresh parameters to ensure new analysis
+      // TODO: Replace with actual analysis data from your analysis service
+      const analysisData = { 
+        // Placeholder for actual analysis result 
+        repository: repoUrl, 
+        analyzedAt: new Date().toISOString() 
+      };
+      
+      // Save repository analysis
+      await RepositoryAnalysisService.saveRepositoryAnalysis(repoUrl, analysisData);
+      
+      // Navigate to the analysis page with fresh parameters
       const encodedUrl = encodeURIComponent(repoUrl);
-      const timestamp = Date.now(); // Add timestamp to force fresh analysis
+      const timestamp = Date.now(); 
       navigate(`/analysis?repo=${encodedUrl}&role=${role}&t=${timestamp}`);
       
     } catch (error) {
@@ -78,6 +113,14 @@ const RepositoryForm = () => {
   
   return (
     <form onSubmit={handleSubmit}>
+      {subscription && (
+        <SubscriptionAlert 
+          currentPlan={subscription.plan_type} 
+          analysisCounts={subscription.analysisCounts} 
+          analysisLimit={subscription.analysisLimit}
+        />
+      )}
+      
       <Tabs defaultValue="url" className="w-full">
         <TabsList className="grid grid-cols-2 mb-6">
           <TabsTrigger value="url">GitHub URL</TabsTrigger>
@@ -150,7 +193,7 @@ const RepositoryForm = () => {
       <Button 
         type="submit" 
         className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
-        disabled={!repoUrl || isAnalyzing}
+        disabled={!repoUrl || isAnalyzing || (subscription && subscription.analysisCounts >= subscription.analysisLimit)}
       >
         {isAnalyzing ? (
           <>
