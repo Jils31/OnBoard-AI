@@ -997,4 +997,5 @@ const MyComponent = () => {
 }
 
 // Create and export a default instance
-export const geminiService = new GeminiService(process.env.GEMINI_API_KEY || '');
+// Fix the process.env reference by using import.meta.env for Vite projects
+export const geminiService = new GeminiService(import.meta.env.VITE_GEMINI_API_KEY || '');
