@@ -1,3 +1,4 @@
+
 /**
  * Service for interacting with Google's Gemini API
  */
@@ -145,7 +146,7 @@ export class GeminiService {
   }
 
   /**
-   * Identifies critical code paths using Gemini
+   * Identifies critical code paths using Gemini - Enhanced for deeper analysis
    */
   async identifyCriticalCodePaths(codeData: any): Promise<any> {
     console.log("Identifying critical code paths with data:", codeData);
@@ -153,30 +154,33 @@ export class GeminiService {
     const fileContents = codeData.fileContents || [];
     const fileContentSamples = fileContents.map((file: any) => ({
       path: file.path,
-      snippet: file.content?.substring(0, 300) + '...' || 'No content available',
+      snippet: file.content?.substring(0, 500) + '...' || 'No content available',
       changeFrequency: file.changeFrequency
     }));
 
     const prompt = `
-      You are an expert code analyst specializing in repository onboarding.
+      You are an expert code analyst specializing in repository onboarding for a ${codeData.role || 'developer'}.
       
       CONTEXT:
-      - You're helping a ${codeData.role} developer understand the most important parts of a codebase
+      - You're helping a ${codeData.role} developer understand the most important parts of a codebase quickly
       - You have git history data showing which files change most frequently
       - You have sample file contents of the most important files
+      - Your goal is to identify the critical 20% of code that provides 80% of core functionality
       
       TASK:
-      Analyze the repository to identify:
-      1. Critical code paths (the 20% of code that provides 80% of core functionality)
+      Create a comprehensive analysis that will help someone quickly understand:
+      1. Critical code paths (the most important code flows to understand first)
       2. Key business logic components
       3. Data flow patterns through the application
-      4. Most frequently modified files (based on git history)
+      4. Entry points to the application
+      5. Complex algorithms or patterns that require special attention
+      6. Technical debt areas that new developers should be aware of
       
       CODE DATA:
       Most Frequently Changed Files:
       ${JSON.stringify(codeData.mostChangedFiles || [], null, 2)}
       
-      File Contents (truncated for key files):
+      File Contents (key files):
       ${JSON.stringify(fileContentSamples, null, 2)}
       
       OUTPUT FORMAT:
@@ -188,7 +192,10 @@ export class GeminiService {
             "description": "string (description of the flow's purpose)",
             "importance": number (1-10 rating of how important this is to understand),
             "files": ["string (list of relevant files)"],
-            "dataFlow": ["string (step by step description of data flow)"]
+            "dataFlow": ["string (step by step description of data flow)"],
+            "keyFunctions": ["string (list of key functions/methods)"],
+            "entryPoints": ["string (entry points to this flow)"],
+            "complexityPoints": ["string (areas of complexity in this flow)"]
           }
         ],
         "frequentlyChangedFiles": [
@@ -196,15 +203,18 @@ export class GeminiService {
             "filename": "string (file path)",
             "count": number (change frequency),
             "significance": "string (why this file changes often)",
-            "recommendation": "string (what to know about this file)"
+            "recommendation": "string (what to know about this file)",
+            "keyPatterns": ["string (important code patterns)"]
           }
         ],
         "keyBusinessLogic": ["string (list of key business logic areas)"],
-        "entryPoints": ["string (list of main entry points to the codebase)"]
+        "entryPoints": ["string (list of main entry points to the codebase)"],
+        "technicalDebt": ["string (areas that need improvement)"],
+        "abstractSyntaxTreeInsights": ["string (key insights from code structure)"]
       }
       
-      Focus on identifying patterns that a ${codeData.role} developer would find most relevant. Be specific, practical, and thorough.
-      Return ONLY the JSON object described above with no additional text or explanation.
+      Be specific, practical, and thorough. Focus on the unique characteristics of this codebase.
+      Return ONLY the valid JSON object with no additional text.
     `;
 
     try {
@@ -258,14 +268,20 @@ export class GeminiService {
           description: "The main application workflow that users interact with",
           importance: 9,
           files: ["src/App.tsx", "src/main.tsx", "src/pages/Index.tsx"],
-          dataFlow: ["User accesses application", "App initializes", "Main functionality loads"]
+          dataFlow: ["User accesses application", "App initializes", "Main functionality loads"],
+          keyFunctions: ["main()", "App()", "renderRoutes()"],
+          entryPoints: ["main.tsx", "index.html"],
+          complexityPoints: ["Routing logic", "State management"]
         },
         {
           name: "Data Processing",
           description: "How data is processed in the application",
           importance: 8,
           files: ["src/services/GitHubService.ts", "src/services/GeminiService.ts"],
-          dataFlow: ["Data retrieved", "Data processed", "Results displayed to user"]
+          dataFlow: ["Data retrieved", "Data processed", "Results displayed to user"],
+          keyFunctions: ["fetchData()", "processData()", "renderResults()"],
+          entryPoints: ["API calls", "User interactions"],
+          complexityPoints: ["Data transformation", "Error handling"]
         }
       ],
       frequentlyChangedFiles: [
@@ -273,11 +289,14 @@ export class GeminiService {
           filename: "src/components/RepositoryForm.tsx",
           count: 15,
           significance: "Core user interaction component",
-          recommendation: "Understand how user input is processed"
+          recommendation: "Understand how user input is processed",
+          keyPatterns: ["Form validation", "Event handling", "State updates"]
         }
       ],
       keyBusinessLogic: ["Repository analysis", "Code structure visualization", "User interaction"],
-      entryPoints: ["src/main.tsx", "src/App.tsx", "src/pages/Index.tsx"]
+      entryPoints: ["src/main.tsx", "src/App.tsx", "src/pages/Index.tsx"],
+      technicalDebt: ["Error handling could be improved", "Need more comprehensive test coverage"],
+      abstractSyntaxTreeInsights: ["Component hierarchy is well-structured", "Service pattern is consistently applied"]
     };
   }
 
@@ -312,21 +331,29 @@ export class GeminiService {
             {
               "id": "string (unique identifier)",
               "label": "string (display name)",
-              "type": "string (node type: component, service, utility, etc.)"
+              "type": "string (node type: component, service, utility, etc.)",
+              "size": number (relative importance, 1-10),
+              "group": "string (logical grouping)"
             }
           ],
           "edges": [
             {
               "source": "string (source node id)",
               "target": "string (target node id)",
-              "type": "string (dependency type: imports, uses, extends, etc.)"
+              "type": "string (dependency type: imports, uses, extends, etc.)",
+              "strength": number (1-5, indicating how tightly coupled)",
+              "description": "string (details about this relationship)"
             }
           ]
         },
         "circularDependencies": [
           ["string (list of module names forming a circular dependency)"]
         ],
-        "recommendations": ["string (specific recommendations for improvement)"]
+        "recommendations": ["string (specific recommendations for improvement)"],
+        "bestPractices": {
+          "followed": ["string (architectural best practices followed)"],
+          "violations": ["string (architectural best practices violated)"]
+        }
       }
       
       Ensure your analysis is precise, actionable, and focused on architectural quality.
@@ -380,28 +407,32 @@ export class GeminiService {
     return {
       dependencyGraph: {
         nodes: [
-          { id: "n1", label: "App", type: "component" },
-          { id: "n2", label: "Services", type: "service" },
-          { id: "n3", label: "Components", type: "component" },
-          { id: "n4", label: "Utilities", type: "utility" }
+          { id: "n1", label: "App", type: "component", size: 10, group: "core" },
+          { id: "n2", label: "Services", type: "service", size: 8, group: "data" },
+          { id: "n3", label: "Components", type: "component", size: 7, group: "ui" },
+          { id: "n4", label: "Utilities", type: "utility", size: 5, group: "helpers" }
         ],
         edges: [
-          { source: "n1", target: "n2", type: "imports" },
-          { source: "n1", target: "n3", type: "imports" },
-          { source: "n3", target: "n4", type: "imports" },
-          { source: "n2", target: "n4", type: "imports" }
+          { source: "n1", target: "n2", type: "imports", strength: 3, description: "Uses services for data fetching" },
+          { source: "n1", target: "n3", type: "imports", strength: 4, description: "Renders UI components" },
+          { source: "n3", target: "n4", type: "imports", strength: 2, description: "Uses utility functions" },
+          { source: "n2", target: "n4", type: "imports", strength: 2, description: "Uses utility functions" }
         ]
       },
       circularDependencies: [],
       recommendations: [
         "Consider creating clearer module boundaries",
         "Improve separation of concerns between components"
-      ]
+      ],
+      bestPractices: {
+        followed: ["Component-based architecture", "Service pattern for data access"],
+        violations: ["Some components have too many responsibilities"]
+      }
     };
   }
 
   /**
-   * Creates interactive tutorials using Gemini
+   * Creates interactive tutorials using Gemini - Enhanced for better learning
    */
   async createTutorial(workflow: any): Promise<any> {
     console.log("Creating tutorial with data:", workflow);
@@ -410,10 +441,10 @@ export class GeminiService {
       You are an expert technical writer creating an interactive tutorial for developers.
       
       CONTEXT:
-      - You're creating a step-by-step tutorial for a ${workflow.role || 'developer'} developer
+      - You're creating a comprehensive step-by-step tutorial for a ${workflow.role || 'developer'} developer
       - The tutorial should explain critical workflows in the codebase
       - The developer is new to this codebase and needs clear, practical guidance
-      - Focus on the most important coding patterns they need to understand
+      - Focus on teaching patterns and principles, not just syntax
       
       REPOSITORY INFO:
       ${JSON.stringify(workflow.repositoryInfo || {}, null, 2)}
@@ -426,23 +457,33 @@ export class GeminiService {
       2. The tutorial should walk through the workflow step by step
       3. Include code examples that illustrate each step
       4. Explain key concepts, patterns, and decisions
-      5. Make the tutorial interactive with clear explanations
+      5. Make the tutorial interactive with clear explanations and questions to reinforce learning
       
       OUTPUT FORMAT:
       Provide your tutorial as a JSON object with the following structure:
       {
         "title": "string (name of the tutorial)",
         "overview": "string (what the tutorial covers and why it matters)",
+        "learningObjectives": ["string (what the developer will learn)"],
         "prerequisites": ["string (skills or knowledge needed)"],
+        "estimatedTime": "string (time to complete, e.g. '30 minutes')",
         "steps": [
           {
             "title": "string (step title)",
             "description": "string (detailed explanation)",
             "codeExample": "string (relevant code snippet)",
-            "explanation": "string (explanation of the code and concepts)"
+            "explanation": "string (explanation of the code and concepts)",
+            "keyTakeaways": ["string (important points to remember)"],
+            "commonMistakes": ["string (pitfalls to avoid)"],
+            "checkpointQuestion": {
+              "question": "string (question to test understanding)",
+              "answer": "string (correct answer)",
+              "hint": "string (hint if they get stuck)"
+            }
           }
         ],
-        "additionalNotes": "string (important things to remember)"
+        "additionalNotes": "string (important things to remember)",
+        "furtherLearning": ["string (resources for more learning)"]
       }
       
       Make your tutorial practical, focused, and tailored to a ${workflow.role || 'developer'} developer.
@@ -497,10 +538,16 @@ export class GeminiService {
     return {
       title: `Getting Started for ${role || 'Developer'}s`,
       overview: "This tutorial provides an introduction to the repository structure and key components.",
+      learningObjectives: [
+        "Understand the overall architecture",
+        "Identify key components and their relationships",
+        "Learn how to navigate the codebase effectively"
+      ],
       prerequisites: [
         "Basic understanding of web development",
         "Familiarity with JavaScript/TypeScript"
       ],
+      estimatedTime: "20 minutes",
       steps: [
         {
           title: "Repository Overview",
@@ -511,7 +558,20 @@ src/
   services/     # Services for API interactions
   pages/        # Main application pages
   utils/        # Utility functions`,
-          explanation: "Most modern web applications follow a structured organization pattern to separate concerns and make code more maintainable."
+          explanation: "Most modern web applications follow a structured organization pattern to separate concerns and make code more maintainable.",
+          keyTakeaways: [
+            "The codebase follows a component-based architecture",
+            "Business logic is separated from presentation"
+          ],
+          commonMistakes: [
+            "Mixing business logic with UI components",
+            "Not understanding the component hierarchy"
+          ],
+          checkpointQuestion: {
+            question: "What folder would you look in to find API interaction code?",
+            answer: "services",
+            hint: "Look for a folder that might handle external data sources"
+          }
         },
         {
           title: "Understanding Key Components",
@@ -529,10 +589,389 @@ const MyComponent = () => {
     </div>
   );
 };`,
-          explanation: "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data."
+          explanation: "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data.",
+          keyTakeaways: [
+            "Components use hooks for data access",
+            "UI rendering is separated from data fetching"
+          ],
+          commonMistakes: [
+            "Fetching data directly in components",
+            "Not handling loading/error states"
+          ],
+          checkpointQuestion: {
+            question: "What pattern does this component use to access data?",
+            answer: "Hooks",
+            hint: "Look at the 'use' prefix in the function being called"
+          }
         }
       ],
-      additionalNotes: "As you explore the codebase further, focus on understanding how data flows between components and which parts handle core business logic."
+      additionalNotes: "As you explore the codebase further, focus on understanding how data flows between components and which parts handle core business logic.",
+      furtherLearning: [
+        "Review the test files to understand component behaviors",
+        "Check documentation in README.md files",
+        "Explore example usage in the codebase"
+      ]
+    };
+  }
+
+  /**
+   * NEW: Generates Abstract Syntax Tree analysis
+   */
+  async generateASTAnalysis(files: any): Promise<any> {
+    console.log("Generating AST analysis");
+    
+    const prompt = `
+      You are an expert code analyst specializing in Abstract Syntax Tree (AST) analysis.
+      
+      CONTEXT:
+      - You're analyzing a codebase to help developers understand its structure
+      - You have access to file contents and structure information
+      - Your task is to create an AST-based analysis that reveals code patterns and structure
+      
+      FILE DATA:
+      ${JSON.stringify(files, null, 2)}
+      
+      INSTRUCTIONS:
+      1. Analyze the file contents to identify key patterns and structures
+      2. Identify function and class relationships
+      3. Map out control flow patterns
+      4. Identify potential code smells or anti-patterns
+      5. Suggest refactoring opportunities based on AST analysis
+      
+      OUTPUT FORMAT:
+      Provide your analysis as a JSON object with the following structure:
+      {
+        "astNodes": [
+          {
+            "type": "string (node type: function, class, hook, etc.)",
+            "name": "string (name of the node)",
+            "location": "string (file path)",
+            "complexity": number (1-10 complexity score),
+            "children": ["string (names of child nodes)"],
+            "dependencies": ["string (external dependencies)"]
+          }
+        ],
+        "patterns": [
+          {
+            "name": "string (pattern name)",
+            "description": "string (pattern description)",
+            "locations": ["string (where this pattern is found)"],
+            "quality": "string (good, neutral, concerning)"
+          }
+        ],
+        "codeSmells": [
+          {
+            "type": "string (type of code smell)",
+            "location": "string (where it's found)",
+            "suggestion": "string (how to improve it)"
+          }
+        ],
+        "refactoringOpportunities": ["string (suggestions for refactoring)"]
+      }
+      
+      Focus on providing practical insights that will help developers understand the codebase structure.
+      Return ONLY valid JSON conforming to the structure specified above.
+    `;
+
+    try {
+      console.log("Sending AST analysis request to Gemini");
+      const result = await this.generateContent(prompt);
+      console.log("Received AST analysis response");
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw AST analysis response:", text.substring(0, 200) + "...");
+        
+        // Try to extract JSON from the text
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return this.getDefaultASTAnalysisResponse();
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err);
+            return this.getDefaultASTAnalysisResponse();
+          }
+        }
+      }
+      
+      return this.getDefaultASTAnalysisResponse();
+    } catch (error) {
+      console.error("Error in generateASTAnalysis:", error);
+      return this.getDefaultASTAnalysisResponse();
+    }
+  }
+
+  /**
+   * Default AST analysis response when API fails
+   */
+  private getDefaultASTAnalysisResponse(): any {
+    return {
+      astNodes: [
+        {
+          type: "function",
+          name: "App",
+          location: "src/App.tsx",
+          complexity: 3,
+          children: ["Router", "MainLayout"],
+          dependencies: ["react", "react-router-dom"]
+        },
+        {
+          type: "component",
+          name: "RepositoryForm",
+          location: "src/components/RepositoryForm.tsx",
+          complexity: 4,
+          children: ["FormInput", "Button"],
+          dependencies: ["react", "react-hook-form"]
+        },
+        {
+          type: "service",
+          name: "GitHubService",
+          location: "src/services/GitHubService.ts",
+          complexity: 5,
+          children: [],
+          dependencies: ["octokit"]
+        }
+      ],
+      patterns: [
+        {
+          name: "Component Composition",
+          description: "Breaking UI into smaller reusable components",
+          locations: ["src/components/*"],
+          quality: "good"
+        },
+        {
+          name: "Service Pattern",
+          description: "Centralizing external API calls in service modules",
+          locations: ["src/services/*"],
+          quality: "good"
+        },
+        {
+          name: "Hook Pattern",
+          description: "Using custom hooks for shared logic",
+          locations: ["src/hooks/*"],
+          quality: "good"
+        }
+      ],
+      codeSmells: [
+        {
+          type: "Large File",
+          location: "src/services/GeminiService.ts",
+          suggestion: "Split into smaller, more focused modules"
+        },
+        {
+          type: "Duplicate Logic",
+          location: "Multiple components",
+          suggestion: "Extract shared logic into hooks or utility functions"
+        }
+      ],
+      refactoringOpportunities: [
+        "Extract error handling into a dedicated utility",
+        "Create a central state management solution",
+        "Implement a more consistent component API"
+      ]
+    };
+  }
+
+  /**
+   * NEW: Chat with AI about the codebase
+   */
+  async chatWithAI(query: string, codebaseContext: any): Promise<any> {
+    console.log("Chatting with AI about codebase:", query);
+    
+    const prompt = `
+      You are an expert software developer who knows everything about this codebase.
+      
+      CODEBASE CONTEXT:
+      ${JSON.stringify(codebaseContext, null, 2)}
+      
+      USER QUERY:
+      ${query}
+      
+      INSTRUCTIONS:
+      1. Answer the user's query about the codebase
+      2. Be specific and reference actual files, functions, or patterns
+      3. Provide code examples when appropriate
+      4. If you're unsure about something, be honest about limitations
+      
+      Your response should be helpful, accurate, and focus on helping the user understand the codebase better.
+      Format your response in a clear, readable way with markdown formatting where appropriate.
+    `;
+
+    try {
+      console.log("Sending chat query to Gemini");
+      const result = await this.generateContent(prompt);
+      console.log("Received chat response from Gemini");
+      
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        return {
+          response: result.candidates[0].content.parts[0].text,
+          success: true
+        };
+      }
+      
+      return {
+        response: "I'm sorry, I couldn't generate a response based on the codebase. Please try rephrasing your question or providing more context.",
+        success: false
+      };
+    } catch (error) {
+      console.error("Error in chatWithAI:", error);
+      return {
+        response: "There was an error processing your question. Please try again later.",
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
+   * NEW: Generate downloadable documentation
+   */
+  async generateDocumentation(repoData: any): Promise<any> {
+    console.log("Generating documentation with data:", repoData);
+    
+    const prompt = `
+      You are an expert technical writer creating comprehensive documentation for a codebase.
+      
+      CONTEXT:
+      - You're creating documentation for developers who are new to this codebase
+      - The documentation should be comprehensive yet concise
+      - Focus on making it easy to understand the architecture and key components
+      
+      REPOSITORY INFO:
+      ${JSON.stringify(repoData.repositoryInfo || {}, null, 2)}
+      
+      STRUCTURE ANALYSIS:
+      ${JSON.stringify(repoData.structureAnalysis || {}, null, 2)}
+      
+      CRITICAL PATHS:
+      ${JSON.stringify(repoData.criticalPathsAnalysis || {}, null, 2)}
+      
+      DEPENDENCY GRAPH:
+      ${JSON.stringify(repoData.dependencyGraphAnalysis || {}, null, 2)}
+      
+      INSTRUCTIONS:
+      1. Create comprehensive documentation in Markdown format
+      2. Include sections on architecture, key components, code patterns, and workflows
+      3. Add diagrams described in text (they will be rendered later)
+      4. Focus on helping new developers get up to speed quickly
+      
+      OUTPUT FORMAT:
+      Provide your documentation as a JSON object with the following structure:
+      {
+        "title": "string (documentation title)",
+        "version": "string (e.g. '1.0.0')",
+        "generatedDate": "string (current date)",
+        "sections": [
+          {
+            "title": "string (section title)",
+            "content": "string (markdown content)",
+            "subsections": [
+              {
+                "title": "string (subsection title)",
+                "content": "string (markdown content)"
+              }
+            ]
+          }
+        ],
+        "markdownContent": "string (complete markdown document)"
+      }
+    `;
+
+    try {
+      console.log("Sending documentation request to Gemini");
+      const result = await this.generateContent(prompt);
+      console.log("Received documentation response");
+      
+      // Parse the JSON from the text response
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw documentation response:", text.substring(0, 200) + "...");
+        
+        // Try to extract JSON from the text
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          text.match(/```\s*([\s\S]*?)\s*```/) || 
+                          text.match(/(\{[\s\S]*\})/);
+        
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            return JSON.parse(jsonMatch[1]);
+          } catch (err) {
+            console.error("Failed to parse JSON from response:", err);
+            return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
+          }
+        } else {
+          // Try to parse the entire text as JSON
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse entire response as JSON:", err);
+            return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
+          }
+        }
+      }
+      
+      return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
+    } catch (error) {
+      console.error("Error in generateDocumentation:", error);
+      return this.getDefaultDocumentationResponse(repoData.repositoryInfo?.name);
+    }
+  }
+
+  /**
+   * Default documentation response when API fails
+   */
+  private getDefaultDocumentationResponse(repoName: string = 'Repository'): any {
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    return {
+      title: `${repoName} Documentation`,
+      version: "1.0.0",
+      generatedDate: currentDate,
+      sections: [
+        {
+          title: "Introduction",
+          content: `# Introduction to ${repoName}\n\nThis documentation provides an overview of the ${repoName} codebase, its architecture, and key components.`,
+          subsections: []
+        },
+        {
+          title: "Architecture Overview",
+          content: "# Architecture Overview\n\nThis section describes the overall architecture of the application.",
+          subsections: [
+            {
+              title: "System Components",
+              content: "## System Components\n\nThe system consists of the following key components:\n\n- Frontend Layer\n- Service Layer\n- Data Access Layer"
+            }
+          ]
+        },
+        {
+          title: "Getting Started",
+          content: "# Getting Started\n\nThis section helps new developers get started with the codebase.",
+          subsections: [
+            {
+              title: "Setup and Installation",
+              content: "## Setup and Installation\n\n1. Clone the repository\n2. Install dependencies\n3. Run the development server"
+            }
+          ]
+        },
+        {
+          title: "Key Workflows",
+          content: "# Key Workflows\n\nThis section describes the most important workflows in the application.",
+          subsections: []
+        }
+      ],
+      markdownContent: `# ${repoName} Documentation\n\n## Introduction\n\nThis documentation provides an overview of the ${repoName} codebase, its architecture, and key components.\n\n## Architecture Overview\n\nThis section describes the overall architecture of the application.\n\n### System Components\n\nThe system consists of the following key components:\n\n- Frontend Layer\n- Service Layer\n- Data Access Layer\n\n## Getting Started\n\nThis section helps new developers get started with the codebase.\n\n### Setup and Installation\n\n1. Clone the repository\n2. Install dependencies\n3. Run the development server\n\n## Key Workflows\n\nThis section describes the most important workflows in the application.`
     };
   }
 
