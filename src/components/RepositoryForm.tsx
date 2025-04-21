@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { githubService, GitHubService } from "@/services/GitHubService";
 import { AlertCircle, Loader, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,6 +14,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
 interface GithubRepo {
   id: number;
@@ -39,23 +40,31 @@ const RepositoryForm = () => {
   const [githubToken, setGithubToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
   
   const subscription = useSubscription();
   
   // Fetch GitHub token and repositories on component mount
   useEffect(() => {
     const fetchGitHubToken = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Check if user is authenticated with GitHub
+      // Try to get token from current session
       if (session?.provider_token) {
         setGithubToken(session.provider_token);
+        localStorage.setItem('github_token', session.provider_token);
         fetchUserRepositories(session.provider_token);
+        return;
+      }
+      
+      // If no token in session, try localStorage
+      const storedToken = localStorage.getItem('github_token');
+      if (storedToken) {
+        setGithubToken(storedToken);
+        fetchUserRepositories(storedToken);
       }
     };
     
     fetchGitHubToken();
-  }, []);
+  }, [session]);
   
   const fetchUserRepositories = async (token: string) => {
     setIsLoadingRepos(true);
@@ -135,10 +144,9 @@ const RepositoryForm = () => {
       const { owner, repo } = parsedRepo;
       
       // Use authenticated service for accessing private repositories
-      let service = githubService;
-      if (githubToken) {
-        service = GitHubService.withToken(githubToken);
-      }
+      let service = githubToken ? GitHubService.withToken(githubToken) : githubService;
+      
+      console.log("Using GitHub token:", !!githubToken);
       
       // Quick validation check by fetching repo info
       await service.getRepositoryInfo(owner, repo);

@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Code, BrainCog, Rocket, GithubIcon, Check, Clock, ArrowUpRight, ChevronDown } from "lucide-react";
+import { ArrowRight, Code, BrainCog, Rocket, GithubIcon, Check, ArrowUpRight, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,58 @@ const fadeInUp = {
 const staggeredContainer = {
   animate: { transition: { staggerChildren: 0.1 } }
 };
+
+// Use the same plans data as in Pricing.tsx to ensure consistency
+const plans = [
+  {
+    name: "Free",
+    description: "For personal projects and exploration",
+    price: "$0",
+    period: "forever",
+    features: [
+      "1 repository analysis per month",
+      "Basic code structure visualization",
+      "Limited documentation generation",
+      "Community support"
+    ],
+    buttonText: "Start Free",
+    highlight: false,
+    productId: ""
+  },
+  {
+    name: "Premium",
+    description: "For professional developers",
+    price: "$19.99",
+    period: "per month",
+    features: [
+      "7 repository analyses per month",
+      "Advanced visualization tools",
+      "Full documentation generation",
+      "Critical path analysis",
+      "Priority support"
+    ],
+    buttonText: "Get Premium",
+    highlight: true,
+    productId: "16c1bcc2-bac7-4444-85e8-e0872f90e224"
+  },
+  {
+    name: "Unlimited",
+    description: "For teams and organizations",
+    price: "$99.99",
+    period: "per month",
+    features: [
+      "30 repository analyses per month",
+      "Team collaboration features",
+      "Custom onboarding workflows",
+      "Advanced analytics",
+      "API access",
+      "Dedicated support"
+    ],
+    buttonText: "Contact Us",
+    highlight: false,
+    productId: "843c09eb-c979-4946-a9db-5e58baf9b560"
+  }
+];
 
 const Index = () => {
   const { user } = useAuth();
@@ -380,56 +432,7 @@ const Index = () => {
           </motion.div>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                name: "Free",
-                price: "$0",
-                period: "forever",
-                description: "For personal projects and exploration",
-                features: [
-                  "1 repository analysis per month",
-                  "Basic code structure visualization",
-                  "Limited documentation generation",
-                  "Community support"
-                ],
-                cta: "Start Free",
-                popular: false,
-                productId: ""
-              },
-              {
-                name: "Premium",
-                price: "$19.99",
-                period: "per month",
-                description: "For professional developers",
-                features: [
-                  "7 repository analyses per month",
-                  "Advanced visualization tools",
-                  "Full documentation generation",
-                  "Critical path analysis",
-                  "Priority support"
-                ],
-                cta: "Get Premium",
-                popular: true,
-                productId: "16c1bcc2-bac7-4444-85e8-e0872f90e224"
-              },
-              {
-                name: "Unlimited",
-                price: "$99.99",
-                period: "per month",
-                description: "For teams and organizations",
-                features: [
-                  "30 repository analyses per month",
-                  "Team collaboration features",
-                  "Custom onboarding workflows",
-                  "Advanced analytics",
-                  "API access",
-                  "Dedicated support"
-                ],
-                cta: "Contact Us",
-                popular: false,
-                productId: "843c09eb-c979-4946-a9db-5e58baf9b560"
-              }
-            ].map((plan, index) => (
+            {plans.map((plan, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -437,12 +440,12 @@ const Index = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-                  plan.popular 
+                  plan.highlight 
                     ? 'border-blue-500 dark:border-blue-400 scale-105 relative' 
                     : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
-                {plan.popular && (
+                {plan.highlight && (
                   <div className="absolute top-0 inset-x-0 transform -translate-y-1/2">
                     <Badge className="bg-blue-600 hover:bg-blue-700 mx-auto">Most Popular</Badge>
                   </div>
@@ -465,12 +468,12 @@ const Index = () => {
                   <Link to="/pricing">
                     <Button 
                       className={`w-full ${
-                        plan.popular 
+                        plan.highlight 
                           ? 'bg-blue-600 hover:bg-blue-700' 
                           : 'bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600'
                       }`}
                     >
-                      {plan.cta}
+                      {plan.buttonText}
                     </Button>
                   </Link>
                 </div>
