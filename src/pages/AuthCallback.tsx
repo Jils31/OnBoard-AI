@@ -24,6 +24,14 @@ const AuthCallback: React.FC = () => {
           });
           navigate('/auth');
         } else if (data?.session) {
+          // Store GitHub token in localStorage for private repo access
+          if (data.session.provider_token) {
+            localStorage.setItem('github_token', data.session.provider_token);
+            console.log("GitHub token stored successfully");
+          } else {
+            console.log("No GitHub provider token found in session");
+          }
+          
           toast({
             title: "Authentication successful",
             description: "You have been signed in",
@@ -31,6 +39,7 @@ const AuthCallback: React.FC = () => {
           navigate('/');
         } else {
           // No session found, redirect to auth page
+          console.log("No session found");
           navigate('/auth');
         }
       } catch (err) {

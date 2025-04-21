@@ -1,4 +1,3 @@
-
 import { Octokit } from "octokit";
 
 /**
@@ -11,10 +10,19 @@ export class GitHubService {
    * Initialize with optional access token for authenticated requests
    */
   constructor(accessToken?: string) {
-    if (accessToken) {
-      this.octokit = new Octokit({ auth: accessToken });
+    // First try the provided token, then check localStorage
+    let token = accessToken;
+    
+    if (!token && typeof window !== 'undefined') {
+      token = localStorage.getItem('github_token') || undefined;
+    }
+    
+    if (token) {
+      this.octokit = new Octokit({ auth: token });
+      console.log("GitHubService initialized with auth token");
     } else {
       this.octokit = new Octokit();
+      console.log("GitHubService initialized without auth token");
     }
   }
 
@@ -52,14 +60,25 @@ export class GitHubService {
     try {
       if (!this.octokit) throw new Error("GitHub client not initialized");
       
+      console.log(`Fetching repo info for ${owner}/${repo}`);
       const { data } = await this.octokit.rest.repos.get({
         owner,
         repo,
       });
       
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting repository info:", error);
+      
+      // Provide more helpful error message for private repos
+      if (error.status === 404) {
+        if (!localStorage.getItem('github_token')) {
+          throw new Error("Repository not found. If this is a private repository, please sign in with GitHub to access it.");
+        } else {
+          throw new Error("Repository not found or you don't have access to it. Please verify the repository exists and that your GitHub account has access.");
+        }
+      }
+      
       throw error;
     }
   }
@@ -301,8 +320,14 @@ export class GitHubService {
       });
       
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting user repositories:", error);
+      
+      // Provide more helpful error message for authorization issues
+      if (error.status === 401 || error.status === 403) {
+        throw new Error("GitHub authorization failed. Please try signing in again.");
+      }
+      
       throw error;
     }
   }
@@ -311,7 +336,7 @@ export class GitHubService {
    * Check if user has a valid GitHub token
    */
   isAuthenticated(): boolean {
-    return this.octokit !== null;
+    return this.octokit !== null && localStorage.getItem('github_token') !== null;
   }
 
   /**
@@ -322,5 +347,5 @@ export class GitHubService {
   }
 }
 
-// Create and export a singleton instance
+// Create and export a singleton instance that will check localStorage for token
 export const githubService = new GitHubService();
