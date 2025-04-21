@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Code, BrainCog, Rocket, GitHubLogoIcon } from "lucide-react";
+import { ArrowRight, Code, BrainCog, Rocket, GithubIcon } from "lucide-react"; // Changed from GitHubLogoIcon
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ const Index = () => {
                     </Link>
                     <Link to="/auth">
                       <Button variant="outline" size="lg" className="gap-2">
-                        <GitHubLogoIcon className="h-5 w-5" />
+                        <GithubIcon className="h-5 w-5" /> {/* Changed from GitHubLogoIcon */}
                         Sign in with GitHub
                       </Button>
                     </Link>

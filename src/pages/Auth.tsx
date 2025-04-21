@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { GitHubLogoIcon } from "lucide-react";
+import { GithubIcon } from "lucide-react"; // Changed from GitHubLogoIcon
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -146,7 +147,7 @@ const Auth = () => {
               onClick={handleGitHubSignIn}
               className="w-full gap-2"
             >
-              <GitHubLogoIcon className="h-5 w-5" />
+              <GithubIcon className="h-5 w-5" /> {/* Changed from GitHubLogoIcon */}
               Continue with GitHub
             </Button>
             
