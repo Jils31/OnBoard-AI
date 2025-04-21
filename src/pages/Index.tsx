@@ -2,10 +2,26 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Code, BrainCog, Rocket, GithubIcon } from "lucide-react"; // Corrected import
+import { ArrowRight, Code, BrainCog, Rocket, GithubIcon, Check, Clock, ArrowUpRight, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
+
+const staggeredContainer = {
+  animate: { transition: { staggerChildren: 0.1 } }
+};
 
 const Index = () => {
   const { user } = useAuth();
@@ -15,53 +31,100 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 sm:py-32">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-center text-center">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="max-w-4xl mx-auto"
+              initial="initial"
+              animate="animate"
+              variants={fadeInUp}
+              className="max-w-2xl"
             >
               <Badge className="mb-4 px-3 py-1 text-sm" variant="secondary">
                 Pro Plan - Now Available
               </Badge>
-              <h1 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-6xl md:text-7xl">
-                Understand Any Codebase in
-                <span className="text-blue-600 dark:text-blue-400"> Minutes</span>
+              <h1 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-6xl">
+                Understand codebases in 
+                <span className="text-blue-600 dark:text-blue-400"> minutes not weeks</span>
               </h1>
-              <p className="mb-8 text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="mb-8 text-xl text-gray-600 dark:text-gray-300">
                 AI-powered repository analysis that helps developers get productive quickly.
                 Perfect for onboarding, code reviews, and technical documentation.
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
+              <motion.div 
+                className="flex flex-wrap gap-4"
+                variants={staggeredContainer}
+              >
                 {user ? (
                   <Link to="/dashboard">
-                    <Button size="lg" className="gap-2">
+                    <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700">
                       Go to Dashboard <ArrowRight size={16} />
                     </Button>
                   </Link>
                 ) : (
                   <>
                     <Link to="/auth">
-                      <Button size="lg" className="gap-2">
+                      <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700">
                         Try for Free <ArrowRight size={16} />
                       </Button>
                     </Link>
                     <Link to="/auth">
                       <Button variant="outline" size="lg" className="gap-2">
-                        <GithubIcon className="h-5 w-5" /> {/* Changed from GitHubLogoIcon */}
+                        <GithubIcon className="h-5 w-5" />
                         Sign in with GitHub
                       </Button>
                     </Link>
                   </>
                 )}
+              </motion.div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="md:w-5/12"
+            >
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur-md opacity-30"></div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-200 dark:border-gray-700 relative">
+                  <div className="flex items-center gap-2 text-sm mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                    <span className="ml-2 text-gray-500">Repository Analysis</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-32 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div className="flex gap-3">
+                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
+                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-8 flex justify-center">
+                <motion.div 
+                  className="animate-bounce"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1, duration: 1 }}
+                >
+                  <ChevronDown className="h-6 w-6 text-gray-400" />
+                </motion.div>
               </div>
             </motion.div>
           </div>
         </div>
 
         {/* Stats Section */}
-        <div className="container mx-auto px-4 mt-16">
+        <motion.div 
+          className="container mx-auto px-4 mt-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               { label: "Repositories Analyzed", value: "10,000+" },
@@ -73,7 +136,7 @@ const Index = () => {
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                transition={{ duration: 0.6, delay: 0.5 + index * 0.1 }}
                 className="text-center"
               >
                 <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
@@ -85,49 +148,79 @@ const Index = () => {
               </motion.div>
             ))}
           </div>
+        </motion.div>
+      </section>
+
+      {/* Partners Section */}
+      <section className="py-16 bg-white dark:bg-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <p className="text-gray-500 dark:text-gray-400 mb-2">Trusted by developers from</p>
+          </div>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+            {["Google", "Meta", "Stripe", "Airbnb", "Microsoft"].map((partner, index) => (
+              <div key={index} className="grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
+                <div className="h-8 w-24 bg-gray-300 dark:bg-gray-600 rounded-md flex items-center justify-center">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">{partner}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white dark:bg-gray-800">
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold sm:text-4xl">
-            How Onboarding Buddy Works
-          </h2>
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Features</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              Powerful tools to help you understand any codebase faster and more efficiently
+            </p>
+          </motion.div>
           
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 rounded-full bg-blue-100 p-3 dark:bg-blue-900">
-                <Code className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="mb-2 text-xl font-bold">Smart Repository Analysis</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Our AI analyzes repository structure, dependencies, and code paths
-                to create a comprehensive understanding of your project.
-              </p>
-            </div>
-            
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 rounded-full bg-purple-100 p-3 dark:bg-purple-900">
-                <BrainCog className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="mb-2 text-xl font-bold">Interactive Documentation</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Generate visual maps, dependency graphs, and interactive guides
-                that make understanding complex codebases intuitive.
-              </p>
-            </div>
-            
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 rounded-full bg-green-100 p-3 dark:bg-green-900">
-                <Rocket className="h-8 w-8 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="mb-2 text-xl font-bold">Accelerated Onboarding</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Reduce onboarding time by 70% with personalized learning paths
-                and step-by-step walkthroughs of critical workflows.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Smart Repository Analysis",
+                description: "Our AI analyzes repository structure, dependencies, and code paths to create a comprehensive understanding of your project.",
+                icon: <Code className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              },
+              {
+                title: "Interactive Documentation",
+                description: "Generate visual maps, dependency graphs, and interactive guides that make understanding complex codebases intuitive.",
+                icon: <BrainCog className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              },
+              {
+                title: "Accelerated Onboarding",
+                description: "Reduce onboarding time by 70% with personalized learning paths and step-by-step walkthroughs of critical workflows.",
+                icon: <Rocket className="h-8 w-8 text-green-600 dark:text-green-400" />
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-md border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
+              >
+                <div className="mb-4 rounded-full bg-blue-100 p-3 w-fit dark:bg-blue-900/30">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {feature.description}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -135,90 +228,314 @@ const Index = () => {
       {/* How It Works Section */}
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="relative">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-                <div className="text-blue-600 dark:text-blue-400 text-xl font-bold mb-2">1. Connect</div>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Sign in with GitHub and select the repository you want to analyze.
-                </p>
-              </div>
-              <div className="hidden md:block absolute -right-8 top-1/2 transform -translate-y-1/2 z-10">
-                <ArrowRight className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col justify-center"
+            >
+              <h3 className="text-2xl font-bold mb-4">Analyze any repository instantly</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Simply connect your GitHub account or paste a repository URL. Our AI will analyze the codebase structure, identify key patterns, and generate comprehensive insights.
+              </p>
+              <ul className="space-y-3">
+                {["Identify critical code paths", "Map dependencies", "Document architecture", "Highlight important components"].map((item, i) => (
+                  <li key={i} className="flex items-start">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 mr-2" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
             
-            <div className="relative">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-                <div className="text-blue-600 dark:text-blue-400 text-xl font-bold mb-2">2. Analyze</div>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Our AI analyzes the codebase, identifying key patterns and structures.
-                </p>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <div className="rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-100 dark:bg-gray-700 p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-5/6"></div>
+                    <div className="h-24 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-2/3"></div>
+                  </div>
+                </div>
               </div>
-              <div className="hidden md:block absolute -right-8 top-1/2 transform -translate-y-1/2 z-10">
-                <ArrowRight className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-            
-            <div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-                <div className="text-blue-600 dark:text-blue-400 text-xl font-bold mb-2">3. Understand</div>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Get instant insights, documentation, and interactive visualizations.
-                </p>
-              </div>
-            </div>
+            </motion.div>
+          </div>
+          
+          <div className="flex justify-center mt-16">
+            <Link to={user ? "/dashboard" : "/auth"}>
+              <Button size="lg" className="gap-2">
+                Get Started <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Testimonials Section */}
+      <section className="py-20 bg-white dark:bg-gray-800">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Testimonials</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              See what other developers are saying about Onboarding Buddy
+            </p>
+          </motion.div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Sarah Chen",
+                role: "CTO at DevFlow",
+                quote: "Onboarding Buddy cut our new developer ramp-up time in half. The visual repository maps are incredibly helpful.",
+                image: null
+              },
+              {
+                name: "Marcus Johnson",
+                role: "Software Engineer",
+                quote: "As a new developer, the guided walkthroughs helped me understand our complex codebase in days instead of weeks.",
+                image: null
+              },
+              {
+                name: "Aisha Patel",
+                role: "Lead Developer at TechSprint",
+                quote: "The dependency mapping feature alone is worth the subscription. It's like having a senior developer guide you through the code.",
+                image: null
+              }
+            ].map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-gray-50 dark:bg-gray-700 p-6 rounded-xl shadow-md"
+              >
+                <div className="flex items-center mb-4">
+                  <Avatar className="h-12 w-12 mr-4">
+                    <AvatarImage src={testimonial.image || ""} />
+                    <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-bold">{testimonial.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</p>
+                  </div>
+                </div>
+                <p className="italic text-gray-600 dark:text-gray-300">"{testimonial.quote}"</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold sm:text-4xl">
-            Trusted by Developers
-          </h2>
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Pricing</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              Choose the plan that works best for you
+            </p>
+          </motion.div>
           
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-              <p className="mb-4 text-gray-600 dark:text-gray-300">
-                "Onboarding Buddy cut our new developer ramp-up time in half. The
-                visual repository maps are incredibly helpful."
-              </p>
-              <div className="flex items-center">
-                <div>
-                  <p className="font-bold">Sarah Chen</p>
-                  <p className="text-sm text-gray-500">CTO at DevFlow</p>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                name: "Free",
+                price: "$0",
+                description: "Perfect for individuals who want to try the service",
+                features: [
+                  "1 repository analysis per month",
+                  "Basic code structure insights",
+                  "Public repositories only",
+                  "Community support"
+                ],
+                cta: "Start Free",
+                popular: false
+              },
+              {
+                name: "Premium",
+                price: "$29",
+                period: "per month",
+                description: "Great for developers working on multiple projects",
+                features: [
+                  "7 repository analyses per month",
+                  "Advanced code insights",
+                  "Private repositories",
+                  "Priority email support",
+                  "Team collaboration features"
+                ],
+                cta: "Get Premium",
+                popular: true
+              },
+              {
+                name: "Unlimited",
+                price: "$159",
+                period: "per month",
+                description: "For teams who need unlimited analyses",
+                features: [
+                  "Unlimited repository analyses",
+                  "Full code structure insights",
+                  "Private repositories",
+                  "Custom annotations",
+                  "Priority support",
+                  "Team management",
+                  "Custom integrations"
+                ],
+                cta: "Contact Us",
+                popular: false
+              }
+            ].map((plan, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border ${
+                  plan.popular 
+                    ? 'border-blue-500 dark:border-blue-400 transform scale-105 relative' 
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute top-0 inset-x-0 transform -translate-y-1/2">
+                    <Badge className="bg-blue-600 hover:bg-blue-700 mx-auto">Most Popular</Badge>
+                  </div>
+                )}
+                <div className="p-8">
+                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                  <div className="mb-4">
+                    <span className="text-4xl font-extrabold">{plan.price}</span>
+                    {plan.period && <span className="text-gray-500 dark:text-gray-400 ml-1">{plan.period}</span>}
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">{plan.description}</p>
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center">
+                        <Check className="h-5 w-5 text-green-500 mr-2" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/pricing">
+                    <Button 
+                      className={`w-full ${
+                        plan.popular 
+                          ? 'bg-blue-600 hover:bg-blue-700' 
+                          : 'bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {plan.cta}
+                    </Button>
+                  </Link>
                 </div>
-              </div>
-            </div>
-            
-            <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-              <p className="mb-4 text-gray-600 dark:text-gray-300">
-                "As a new developer, the guided walkthroughs helped me understand
-                our complex codebase in days instead of weeks."
-              </p>
-              <div className="flex items-center">
-                <div>
-                  <p className="font-bold">Marcus Johnson</p>
-                  <p className="text-sm text-gray-500">Software Engineer</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-              <p className="mb-4 text-gray-600 dark:text-gray-300">
-                "The dependency mapping feature alone is worth the subscription.
-                It's like having a senior developer guide you through the code."
-              </p>
-              <div className="flex items-center">
-                <div>
-                  <p className="font-bold">Aisha Patel</p>
-                  <p className="text-sm text-gray-500">Lead Developer at TechSprint</p>
-                </div>
-              </div>
-            </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-white dark:bg-gray-800">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">FAQ</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              Answers to commonly asked questions
+            </p>
+          </motion.div>
+          
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="w-full">
+              {[
+                {
+                  question: "How does the repository analysis work?",
+                  answer: "Our AI scans your repository's code structure, identifies key patterns and dependencies, and generates comprehensive insights about architecture, critical paths, and code organization. This helps developers understand the codebase more quickly and efficiently."
+                },
+                {
+                  question: "Is my code secure when using Onboarding Buddy?",
+                  answer: "Yes, we take security very seriously. We use secure OAuth connections with GitHub, and your code is only accessed temporarily during analysis. We don't store your code, only the metadata and insights generated from the analysis."
+                },
+                {
+                  question: "Can I analyze private repositories?",
+                  answer: "Yes, our Premium and Unlimited plans allow analysis of private repositories. You'll need to authorize our GitHub integration to access your private repositories securely."
+                },
+                {
+                  question: "How long does an analysis take?",
+                  answer: "Most repositories are analyzed within minutes. Larger codebases may take a bit longer, depending on size and complexity, but our system is optimized for quick turnarounds."
+                },
+                {
+                  question: "Can I upgrade or downgrade my plan anytime?",
+                  answer: "Yes, you can upgrade or downgrade your subscription at any time. Plan changes take effect at the beginning of your next billing cycle."
+                }
+              ].map((faq, index) => (
+                <AccordionItem key={index} value={`faq-${index}`} className="border-b border-gray-200 dark:border-gray-700">
+                  <AccordionTrigger className="text-left font-medium py-4">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600 dark:text-gray-300 pb-4">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+          
+          <div className="text-center mt-12">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Still have questions? We're here to help.
+            </p>
+            <Button variant="outline" className="gap-2">
+              Contact Support <ArrowUpRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </section>
@@ -226,39 +543,104 @@ const Index = () => {
       {/* CTA Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-center text-white dark:from-blue-800 dark:to-blue-900 sm:p-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-center text-white dark:from-blue-800 dark:to-blue-900 sm:p-12"
+          >
             <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
               Ready to understand codebases faster?
             </h2>
             <p className="mb-8 text-lg text-blue-100">
               Join thousands of developers who are using Onboarding Buddy to analyze both public and private repositories.
             </p>
-            {user ? (
-              <Link to="/dashboard">
-                <Button size="lg" variant="secondary" className="gap-2">
-                  Go to Dashboard <ArrowRight size={16} />
-                </Button>
-              </Link>
-            ) : (
-              <Link to="/auth">
-                <Button size="lg" variant="secondary" className="gap-2">
-                  Start Free Trial <ArrowRight size={16} />
-                </Button>
-              </Link>
-            )}
-          </div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              {user ? (
+                <Link to="/dashboard">
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    Go to Dashboard <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    Start Free Trial <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              )}
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer Section */}
-      <footer className="bg-gray-100 dark:bg-gray-900 py-6 mt-12">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-600 dark:text-gray-300">
-            © {new Date().getFullYear()} Onboarding Buddy. All rights reserved.
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Made by Founder and CEO Adhyaay Karnwal
-          </p>
+      <footer className="bg-gray-100 dark:bg-gray-900 py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="font-bold mb-4">Product</h3>
+              <ul className="space-y-2">
+                <li><Link to="/features" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Features</Link></li>
+                <li><Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Pricing</Link></li>
+                <li><Link to="/integrations" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Integrations</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Company</h3>
+              <ul className="space-y-2">
+                <li><Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">About Us</Link></li>
+                <li><Link to="/blog" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Blog</Link></li>
+                <li><Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Careers</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Resources</h3>
+              <ul className="space-y-2">
+                <li><Link to="/docs" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Documentation</Link></li>
+                <li><Link to="/api" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">API</Link></li>
+                <li><Link to="/support" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Support</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Legal</h3>
+              <ul className="space-y-2">
+                <li><Link to="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/cookies" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Cookie Policy</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-600 dark:text-gray-300 mb-4 md:mb-0">
+              © {new Date().getFullYear()} Onboarding Buddy. All rights reserved.
+            </p>
+            <div className="flex space-x-4">
+              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                <span className="sr-only">Twitter</span>
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                </svg>
+              </a>
+              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                <span className="sr-only">GitHub</span>
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                </svg>
+              </a>
+              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                <span className="sr-only">LinkedIn</span>
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.51 0 10-4.48 10-10S17.51 2 12 2zm-1.13 15.15H8.5v-5.78h2.37v5.78zm-1.16-6.61c-.77 0-1.38-.62-1.38-1.38 0-.76.61-1.38 1.38-1.38.77 0 1.38.62 1.38 1.38 0 .76-.61 1.38-1.38 1.38zm8.16 6.61h-2.36v-2.93c0-.97-.02-2.25-1.37-2.25-1.38 0-1.59 1.07-1.59 2.17v3h-2.35v-5.78h2.26v.97h.03c.36-.67 1.22-1.38 2.52-1.38 2.7 0 3.2 1.78 3.2 4.09v2.09z" clipRule="evenodd" />
+                </svg>
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

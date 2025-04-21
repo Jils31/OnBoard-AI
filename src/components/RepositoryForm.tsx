@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,30 +7,97 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { githubService } from "@/services/GitHubService";
-import { AlertCircle, Loader } from "lucide-react";
+import { githubService, GitHubService } from "@/services/GitHubService";
+import { AlertCircle, Loader, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
+import { supabase } from "@/integrations/supabase/client";
+
+interface GithubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  html_url: string;
+  description: string | null;
+  private: boolean;
+  owner: {
+    login: string;
+  };
+  updated_at: string;
+}
 
 const RepositoryForm = () => {
   const [repoUrl, setRepoUrl] = useState("");
   const [role, setRole] = useState("full-stack");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [userRepos, setUserRepos] = useState<GithubRepo[]>([]);
+  const [selectedRepo, setSelectedRepo] = useState<string>("");
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [githubToken, setGithubToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   
   const subscription = useSubscription();
   
+  // Fetch GitHub token and repositories on component mount
+  useEffect(() => {
+    const fetchGitHubToken = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check if user is authenticated with GitHub
+      if (session?.provider_token) {
+        setGithubToken(session.provider_token);
+        fetchUserRepositories(session.provider_token);
+      }
+    };
+    
+    fetchGitHubToken();
+  }, []);
+  
+  const fetchUserRepositories = async (token: string) => {
+    setIsLoadingRepos(true);
+    setConnectError(null);
+    
+    try {
+      // Create a GitHub service instance with the user's token
+      const githubServiceWithToken = GitHubService.withToken(token);
+      const repos = await githubServiceWithToken.getUserRepositories();
+      
+      setUserRepos(repos);
+    } catch (error) {
+      console.error("Error fetching user repositories:", error);
+      setConnectError("Failed to fetch your GitHub repositories. Please try again.");
+      
+      toast({
+        title: "GitHub Error",
+        description: "Failed to fetch your repositories. Please reconnect your GitHub account.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingRepos(false);
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!repoUrl) {
+    let repositoryUrl = repoUrl;
+    
+    // If a repo is selected from dropdown, use that instead of URL input
+    if (selectedRepo && userRepos.length > 0) {
+      const selected = userRepos.find(repo => repo.full_name === selectedRepo);
+      if (selected) {
+        repositoryUrl = selected.html_url;
+      }
+    }
+    
+    if (!repositoryUrl) {
       toast({
         title: "Missing Repository URL",
-        description: "Please enter a valid GitHub repository URL.",
+        description: "Please enter a valid GitHub repository URL or select one from your repositories.",
         variant: "destructive"
       });
       return;
@@ -60,7 +127,7 @@ const RepositoryForm = () => {
     
     try {
       // Validate the repository URL
-      const parsedRepo = githubService.parseRepoUrl(repoUrl);
+      const parsedRepo = githubService.parseRepoUrl(repositoryUrl);
       if (!parsedRepo) {
         throw new Error("Invalid GitHub repository URL. Please use a URL like https://github.com/username/repo");
       }
@@ -78,15 +145,15 @@ const RepositoryForm = () => {
       // TODO: Replace with actual analysis data from your analysis service
       const analysisData = { 
         // Placeholder for actual analysis result 
-        repository: repoUrl, 
+        repository: repositoryUrl, 
         analyzedAt: new Date().toISOString() 
       };
       
       // Save repository analysis
-      await RepositoryAnalysisService.saveRepositoryAnalysis(repoUrl, analysisData);
+      await RepositoryAnalysisService.saveRepositoryAnalysis(repositoryUrl, analysisData);
       
       // Navigate to the analysis page with fresh parameters
-      const encodedUrl = encodeURIComponent(repoUrl);
+      const encodedUrl = encodeURIComponent(repositoryUrl);
       const timestamp = Date.now(); 
       navigate(`/analysis?repo=${encodedUrl}&role=${role}&t=${timestamp}`);
       
@@ -102,13 +169,40 @@ const RepositoryForm = () => {
     }
   };
 
-  const handleConnectGitHub = () => {
-    setConnectError("GitHub OAuth integration is not implemented yet. Please use the URL option instead.");
-    toast({
-      title: "Feature Not Available",
-      description: "GitHub OAuth integration is coming soon. Please use the URL option for now.",
-      variant: "destructive"
-    });
+  const handleConnectGitHub = async () => {
+    try {
+      const redirectUrl = new URL('/auth/callback', window.location.origin).toString();
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          scopes: 'repo read:user user:email',
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        setConnectError(error.message);
+        toast({
+          title: "GitHub Connection Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      setConnectError("Failed to connect to GitHub. Please try again.");
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to GitHub. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRefreshRepos = () => {
+    if (githubToken) {
+      fetchUserRepositories(githubToken);
+    }
   };
   
   return (
@@ -121,10 +215,12 @@ const RepositoryForm = () => {
         />
       )}
       
-      <Tabs defaultValue="url" className="w-full">
+      <Tabs defaultValue={githubToken ? "repos" : "url"} className="w-full">
         <TabsList className="grid grid-cols-2 mb-6">
           <TabsTrigger value="url">GitHub URL</TabsTrigger>
-          <TabsTrigger value="connect">Connect Repository</TabsTrigger>
+          <TabsTrigger value="repos">
+            {githubToken ? "My Repositories" : "Connect GitHub"}
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="url" className="space-y-4">
@@ -135,7 +231,6 @@ const RepositoryForm = () => {
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               className="flex-1"
-              required
             />
           </div>
           
@@ -144,33 +239,99 @@ const RepositoryForm = () => {
           </div>
         </TabsContent>
         
-        <TabsContent value="connect" className="space-y-4">
-          {connectError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Connection Error</AlertTitle>
-              <AlertDescription>
-                {connectError}
-              </AlertDescription>
-            </Alert>
+        <TabsContent value="repos" className="space-y-4">
+          {!githubToken ? (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-6 text-center">
+              <GitHubLogoIcon className="h-8 w-8 mx-auto mb-2" />
+              <h3 className="text-lg font-medium mb-2">Connect GitHub Repository</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                Authorize Onboarding Buddy to access your GitHub repositories
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleConnectGitHub}
+                type="button"
+              >
+                <GitHubLogoIcon className="mr-2 h-4 w-4" />
+                Connect to GitHub
+              </Button>
+              {connectError && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Connection Error</AlertTitle>
+                  <AlertDescription>
+                    {connectError}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Your GitHub Repositories</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefreshRepos}
+                  disabled={isLoadingRepos}
+                  type="button"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingRepos ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+              
+              {isLoadingRepos ? (
+                <div className="flex justify-center py-8">
+                  <Loader className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : userRepos.length > 0 ? (
+                <div className="max-h-64 overflow-y-auto border rounded-md">
+                  <div className="divide-y">
+                    {userRepos.map((repo) => (
+                      <div 
+                        key={repo.id}
+                        className={`p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer ${
+                          selectedRepo === repo.full_name ? 'bg-gray-100 dark:bg-gray-800' : ''
+                        }`}
+                        onClick={() => setSelectedRepo(repo.full_name)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium">{repo.name}</p>
+                            <p className="text-xs text-gray-500">{repo.owner.login}/{repo.name}</p>
+                          </div>
+                          <div>
+                            {repo.private ? (
+                              <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">Private</span>
+                            ) : (
+                              <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded">Public</span>
+                            )}
+                          </div>
+                        </div>
+                        {repo.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                            {repo.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Updated {new Date(repo.updated_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 border rounded-md">
+                  <p className="text-gray-500">No repositories found</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    We couldn't find any repositories in your GitHub account.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
-          
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-6 text-center">
-            <GitHubLogoIcon className="h-8 w-8 mx-auto mb-2" />
-            <h3 className="text-lg font-medium mb-2">Connect GitHub Repository</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              Authorize Onboarding Buddy to access your GitHub repositories
-            </p>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={handleConnectGitHub}
-              type="button"
-            >
-              <GitHubLogoIcon className="mr-2 h-4 w-4" />
-              Connect to GitHub
-            </Button>
-          </div>
         </TabsContent>
       </Tabs>
       
@@ -193,7 +354,11 @@ const RepositoryForm = () => {
       <Button 
         type="submit" 
         className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
-        disabled={!repoUrl || isAnalyzing || (subscription && subscription.analysisCounts >= subscription.analysisLimit)}
+        disabled={
+          (!repoUrl && !selectedRepo) || 
+          isAnalyzing || 
+          (subscription && subscription.analysisCounts >= subscription.analysisLimit)
+        }
       >
         {isAnalyzing ? (
           <>

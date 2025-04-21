@@ -1,4 +1,3 @@
-
 import { Octokit } from "octokit";
 
 /**
@@ -284,6 +283,41 @@ export class GitHubService {
       console.error("Error getting repository languages:", error);
       throw error;
     }
+  }
+
+  /**
+   * Get user repositories (requires authentication)
+   */
+  async getUserRepositories(page: number = 1, perPage: number = 30, sort: string = 'updated'): Promise<any[]> {
+    try {
+      if (!this.octokit) throw new Error("GitHub client not initialized or not authenticated");
+      
+      const { data } = await this.octokit.rest.repos.listForAuthenticatedUser({
+        sort,
+        direction: 'desc',
+        per_page: perPage,
+        page
+      });
+      
+      return data;
+    } catch (error) {
+      console.error("Error getting user repositories:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user has a valid GitHub token
+   */
+  isAuthenticated(): boolean {
+    return this.octokit !== null;
+  }
+
+  /**
+   * Create a new instance with a token
+   */
+  static withToken(token: string): GitHubService {
+    return new GitHubService(token);
   }
 }
 
