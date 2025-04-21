@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
 import { Menu, X, LogOut, User } from 'lucide-react';
-import Logo from './Logo';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,10 +26,10 @@ const NavBar: React.FC = () => {
   };
   
   return (
-    <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-sm border-b sticky top-0 z-40">
+    <header className="bg-white dark:bg-gray-900 shadow-sm border-b sticky top-0 z-40">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        <Link to="/" className="flex items-center">
-          <Logo />
+        <Link to="/" className="text-lg font-bold flex items-center">
+          Onboarding Buddy
         </Link>
         
         {/* Desktop navigation */}
