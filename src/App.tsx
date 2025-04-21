@@ -14,6 +14,7 @@ import History from "./pages/History";
 import AnalysisPage from "./pages/AnalysisPage";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/" element={<><NavBar /><Index /></>} />
             <Route path="/pricing" element={<><NavBar /><Pricing /></>} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             
             <Route element={<><NavBar /><ProtectedRoute /></>}>
               <Route path="/dashboard" element={<Dashboard />} />
