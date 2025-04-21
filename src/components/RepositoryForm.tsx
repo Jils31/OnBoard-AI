@@ -134,8 +134,14 @@ const RepositoryForm = () => {
       
       const { owner, repo } = parsedRepo;
       
+      // Use authenticated service for accessing private repositories
+      let service = githubService;
+      if (githubToken) {
+        service = GitHubService.withToken(githubToken);
+      }
+      
       // Quick validation check by fetching repo info
-      await githubService.getRepositoryInfo(owner, repo);
+      await service.getRepositoryInfo(owner, repo);
       
       toast({
         title: "Repository Validated",
@@ -161,9 +167,18 @@ const RepositoryForm = () => {
       console.error("Error validating repository:", error);
       setIsAnalyzing(false);
       
+      let errorMessage = "Failed to validate repository URL";
+      if (error instanceof Error) {
+        if (error.message.includes("Not Found")) {
+          errorMessage = "Repository not found. If this is a private repository, please ensure you've connected your GitHub account and have access to it.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Repository Error",
-        description: error instanceof Error ? error.message : "Failed to validate repository URL",
+        description: errorMessage,
         variant: "destructive"
       });
     }

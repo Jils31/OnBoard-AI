@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -361,7 +360,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Pricing Section - Updated to match Pricing.tsx */}
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4">
           <motion.div 
@@ -383,47 +382,50 @@ const Index = () => {
               {
                 name: "Free",
                 price: "$0",
-                description: "Perfect for individuals who want to try the service",
+                period: "forever",
+                description: "For personal projects and exploration",
                 features: [
                   "1 repository analysis per month",
-                  "Basic code structure insights",
-                  "Public repositories only",
+                  "Basic code structure visualization",
+                  "Limited documentation generation",
                   "Community support"
                 ],
                 cta: "Start Free",
-                popular: false
+                popular: false,
+                productId: ""
               },
               {
                 name: "Premium",
-                price: "$29",
+                price: "$19.99",
                 period: "per month",
-                description: "Great for developers working on multiple projects",
+                description: "For professional developers",
                 features: [
                   "7 repository analyses per month",
-                  "Advanced code insights",
-                  "Private repositories",
-                  "Priority email support",
-                  "Team collaboration features"
+                  "Advanced visualization tools",
+                  "Full documentation generation",
+                  "Critical path analysis",
+                  "Priority support"
                 ],
                 cta: "Get Premium",
-                popular: true
+                popular: true,
+                productId: "16c1bcc2-bac7-4444-85e8-e0872f90e224"
               },
               {
                 name: "Unlimited",
-                price: "$159",
+                price: "$99.99",
                 period: "per month",
-                description: "For teams who need unlimited analyses",
+                description: "For teams and organizations",
                 features: [
-                  "Unlimited repository analyses",
-                  "Full code structure insights",
-                  "Private repositories",
-                  "Custom annotations",
-                  "Priority support",
-                  "Team management",
-                  "Custom integrations"
+                  "30 repository analyses per month",
+                  "Team collaboration features",
+                  "Custom onboarding workflows",
+                  "Advanced analytics",
+                  "API access",
+                  "Dedicated support"
                 ],
                 cta: "Contact Us",
-                popular: false
+                popular: false,
+                productId: "843c09eb-c979-4946-a9db-5e58baf9b560"
               }
             ].map((plan, index) => (
               <motion.div
@@ -432,9 +434,9 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border ${
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
                   plan.popular 
-                    ? 'border-blue-500 dark:border-blue-400 transform scale-105 relative' 
+                    ? 'border-blue-500 dark:border-blue-400 scale-105 relative' 
                     : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
@@ -473,6 +475,44 @@ const Index = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Enhanced CTA Section with gradient */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 p-8 text-center text-white shadow-xl border border-blue-400/20 sm:p-12"
+          >
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+              Ready to understand codebases faster?
+            </h2>
+            <p className="mb-8 text-lg text-blue-100">
+              Join thousands of developers who are using Onboarding Buddy to analyze both public and private repositories.
+            </p>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              {user ? (
+                <Link to="/dashboard">
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    Go to Dashboard <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button size="lg" variant="secondary" className="gap-2 backdrop-blur-sm bg-white/30 hover:bg-white/40 border border-white/40">
+                    Start Free Trial <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              )}
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -611,40 +651,4 @@ const Index = () => {
               <ul className="space-y-2">
                 <li><Link to="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Terms of Service</Link></li>
-                <li><Link to="/cookies" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Cookie Policy</Link></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-600 dark:text-gray-300 mb-4 md:mb-0">
-              © {new Date().getFullYear()} Onboarding Buddy. All rights reserved.
-            </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <span className="sr-only">Twitter</span>
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <span className="sr-only">GitHub</span>
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <span className="sr-only">LinkedIn</span>
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fillRule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.51 0 10-4.48 10-10S17.51 2 12 2zm-1.13 15.15H8.5v-5.78h2.37v5.78zm-1.16-6.61c-.77 0-1.38-.62-1.38-1.38 0-.76.61-1.38 1.38-1.38.77 0 1.38.62 1.38 1.38 0 .76-.61 1.38-1.38 1.38zm8.16 6.61h-2.36v-2.93c0-.97-.02-2.25-1.37-2.25-1.38 0-1.59 1.07-1.59 2.17v3h-2.35v-5.78h2.26v.97h.03c.36-.67 1.22-1.38 2.52-1.38 2.7 0 3.2 1.78 3.2 4.09v2.09z" clipRule="evenodd" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
-export default Index;
+                <li><Link to="/cookies" className="text-gray-600 dark:text-gray-400 hover
