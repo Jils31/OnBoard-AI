@@ -12,6 +12,7 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Handle the OAuth callback by exchanging the code for a session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {

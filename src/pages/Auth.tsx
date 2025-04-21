@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { GithubIcon } from "lucide-react"; // Corrected import
+import { GithubIcon } from "lucide-react";
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -28,36 +27,7 @@ const Auth = () => {
     };
     
     checkSession();
-
-    // Handle auth redirect from OAuth providers
-    const handleAuthRedirect = async () => {
-      const hash = window.location.hash;
-      
-      if (hash && hash.includes('access_token')) {
-        try {
-          const { data, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            toast({
-              title: "Authentication error",
-              description: error.message,
-              variant: "destructive"
-            });
-          } else if (data?.session) {
-            toast({
-              title: "Sign in successful",
-              description: "Welcome back!",
-            });
-            navigate('/');
-          }
-        } catch (err) {
-          console.error("Error handling auth redirect:", err);
-        }
-      }
-    };
-    
-    handleAuthRedirect();
-  }, [navigate, toast]);
+  }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,11 +106,14 @@ const Auth = () => {
 
   const handleGitHubSignIn = async () => {
     try {
+      // Use the absolute URL of your site for the redirect
+      const redirectUrl = new URL('/auth/callback', window.location.origin).toString();
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
           scopes: 'repo read:user user:email',
-          redirectTo: window.location.origin + '/auth/callback'
+          redirectTo: redirectUrl
         }
       });
 
