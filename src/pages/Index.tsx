@@ -1,7 +1,8 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Code, BrainCog, Rocket, GithubIcon } from "lucide-react"; // Changed from GitHubLogoIcon
+import { ArrowRight, Code, BrainCog, Rocket, GithubIcon } from "lucide-react"; // Corrected import
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
