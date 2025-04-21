@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -81,9 +80,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 sm:py-32">
-        <div className="container mx-auto px-4">
+      {/* Hero Section with enhanced design */}
+      <section className="relative overflow-hidden py-20 sm:py-32 bg-gradient-to-br from-blue-600 via-indigo-500 to-purple-600">
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:60px_60px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-transparent to-black/30" />
+        <div className="container mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             <motion.div 
               initial="initial"
@@ -222,39 +223,25 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20">
+      {/* Enhanced Features Section with Glassmorphism */}
+      <section className="py-20 relative overflow-hidden">
         <div className="container mx-auto px-4">
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Features</h2>
-            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
-            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
-              Powerful tools to help you understand any codebase faster and more efficiently
-            </p>
-          </motion.div>
-          
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                title: "Smart Repository Analysis",
-                description: "Our AI analyzes repository structure, dependencies, and code paths to create a comprehensive understanding of your project.",
-                icon: <Code className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                title: "AI-Powered Analysis",
+                description: "Our advanced AI analyzes repository structure, dependencies, and code paths to provide deep insights within minutes.",
+                icon: <Code className="h-8 w-8 text-blue-500" />
               },
               {
                 title: "Interactive Documentation",
-                description: "Generate visual maps, dependency graphs, and interactive guides that make understanding complex codebases intuitive.",
-                icon: <BrainCog className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                description: "Transform complex codebases into intuitive visual maps and interactive guides for easier understanding.",
+                icon: <BrainCog className="h-8 w-8 text-purple-500" />
               },
               {
-                title: "Accelerated Onboarding",
-                description: "Reduce onboarding time by 70% with personalized learning paths and step-by-step walkthroughs of critical workflows.",
-                icon: <Rocket className="h-8 w-8 text-green-600 dark:text-green-400" />
+                title: "Rapid Onboarding",
+                description: "Reduce new developer onboarding time by 70% with personalized learning paths and guided walkthroughs.",
+                icon: <Rocket className="h-8 w-8 text-green-500" />
               }
             ].map((feature, index) => (
               <motion.div
@@ -263,15 +250,16 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-md border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
+                className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl p-8 hover:shadow-xl transition-all duration-300 relative group"
               >
-                <div className="mb-4 rounded-full bg-blue-100 p-3 w-fit dark:bg-blue-900/30">
-                  {feature.icon}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 rounded-2xl transition-opacity group-hover:opacity-100 opacity-0" />
+                <div className="relative z-10">
+                  <div className="mb-4 p-3 rounded-xl bg-gradient-to-br from-gray-50/10 to-gray-50/5 w-fit">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                  <p className="text-gray-300">{feature.description}</p>
                 </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  {feature.description}
-                </p>
               </motion.div>
             ))}
           </div>
@@ -483,7 +471,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Enhanced CTA Section with gradient */}
+      {/* Enhanced Final CTA Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
@@ -491,32 +479,35 @@ const Index = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 p-8 text-center text-white shadow-xl border border-blue-400/20 sm:p-12"
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 p-12 text-center text-white relative overflow-hidden"
           >
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-              Ready to understand codebases faster?
-            </h2>
-            <p className="mb-8 text-lg text-blue-100">
-              Join thousands of developers who are using Onboarding Buddy to analyze both public and private repositories.
-            </p>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              {user ? (
-                <Link to="/dashboard">
-                  <Button size="lg" variant="secondary" className="gap-2">
-                    Go to Dashboard <ArrowRight size={16} />
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/auth">
-                  <Button size="lg" variant="secondary" className="gap-2 backdrop-blur-sm bg-white/30 hover:bg-white/40 border border-white/40">
-                    Start Free Trial <ArrowRight size={16} />
-                  </Button>
-                </Link>
-              )}
-            </motion.div>
+            <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:60px_60px]" />
+            <div className="relative z-10">
+              <h2 className="mb-4 text-4xl font-bold">
+                Ready to transform how you understand code?
+              </h2>
+              <p className="mb-8 text-lg text-blue-100 max-w-2xl mx-auto">
+                Join thousands of developers who are using Onboarding Buddy to analyze repositories and accelerate their development workflow.
+              </p>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                {user ? (
+                  <Link to="/dashboard">
+                    <Button size="lg" variant="secondary" className="gap-2 bg-white text-blue-600 hover:bg-blue-50">
+                      Go to Dashboard <ArrowRight size={16} />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/auth">
+                    <Button size="lg" variant="secondary" className="gap-2 backdrop-blur-sm bg-white/30 hover:bg-white/40 border border-white/40">
+                      Start Free Trial <ArrowRight size={16} />
+                    </Button>
+                  </Link>
+                )}
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -582,44 +573,6 @@ const Index = () => {
               Contact Support <ArrowUpRight className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-center text-white dark:from-blue-800 dark:to-blue-900 sm:p-12"
-          >
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-              Ready to understand codebases faster?
-            </h2>
-            <p className="mb-8 text-lg text-blue-100">
-              Join thousands of developers who are using Onboarding Buddy to analyze both public and private repositories.
-            </p>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              {user ? (
-                <Link to="/dashboard">
-                  <Button size="lg" variant="secondary" className="gap-2">
-                    Go to Dashboard <ArrowRight size={16} />
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/auth">
-                  <Button size="lg" variant="secondary" className="gap-2">
-                    Start Free Trial <ArrowRight size={16} />
-                  </Button>
-                </Link>
-              )}
-            </motion.div>
-          </motion.div>
         </div>
       </section>
 
