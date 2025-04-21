@@ -1,3 +1,4 @@
+
 import { Octokit } from "octokit";
 
 /**
@@ -288,7 +289,7 @@ export class GitHubService {
   /**
    * Get user repositories (requires authentication)
    */
-  async getUserRepositories(page: number = 1, perPage: number = 30, sort: string = 'updated'): Promise<any[]> {
+  async getUserRepositories(page: number = 1, perPage: number = 30, sort: 'updated' | 'created' | 'pushed' | 'full_name' = 'updated'): Promise<any[]> {
     try {
       if (!this.octokit) throw new Error("GitHub client not initialized or not authenticated");
       
