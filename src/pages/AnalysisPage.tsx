@@ -197,8 +197,7 @@ const AnalysisPage = () => {
           {
             repositoryInfo: repoInfo,
             ...finalAnalysisData
-          },
-          []
+          }
         );
         setRepoRecord(await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl));
         setIsLoading(false);

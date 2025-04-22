@@ -159,7 +159,7 @@ export class RepositoryAnalysisService {
    * @param chatMessages The chat messages to save
    * @returns Success status
    */
-  static async updateChatHistory(repositoryId: string, chatMessages: any[]) {
+  static async updateChatHistory(repositoryUrl: string, chatMessages: any[]) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -172,7 +172,7 @@ export class RepositoryAnalysisService {
         .update({
           chat_history: chatMessages
         })
-        .eq('id', repositoryId)
+        .eq('repository_url', repositoryUrl)
         .eq('user_id', user.id);
         
       if (error) throw error;
@@ -180,6 +180,35 @@ export class RepositoryAnalysisService {
     } catch (error) {
       console.error('Error updating chat history:', error);
       return false;
+    }
+  }
+  
+  /**
+   * Get current chat message count for a repository
+   * @param repositoryId The repository ID
+   * @returns The current message count or 0 if an error occurred
+   */
+  static async getChatCount(repositoryId: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User must be logged in to check chat usage');
+      }
+      
+      const { data, error } = await supabase
+        .from('user_chat_usage')
+        .select('message_count')
+        .eq('repository_id', repositoryId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (error) throw error;
+      
+      return data ? data.message_count : 0;
+    } catch (error) {
+      console.error('Error getting chat message count:', error);
+      return 0;
     }
   }
   
@@ -276,5 +305,12 @@ export class RepositoryAnalysisService {
       console.error('Error checking message limit:', error);
       return true; // Fail safe: assume limit is reached if there's an error
     }
+  }
+  
+  /**
+   * Alternative name for incrementChatMessageCount to match the function call in the component
+   */
+  static async incrementChatCount(repositoryId: string) {
+    return this.incrementChatMessageCount(repositoryId);
   }
 }
