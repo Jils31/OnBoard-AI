@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SendIcon, Loader2, Code } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +9,16 @@ import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { RepositoryAnalysisService } from '@/services/RepositoryAnalysisService';
+import { useAuth } from "@/context/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface CodebaseChatViewProps {
   codebaseData: any;
   repositoryName?: string;
+  chatHistory?: any[];
+  repositoryId?: string;
+  planType?: string;
 }
 
 interface Message {
@@ -22,41 +27,89 @@ interface Message {
   timestamp: Date;
 }
 
-const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repositoryName }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
+const MAX_FREE_CHAT_MESSAGES = 5;
+
+const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
+  codebaseData,
+  repositoryName,
+  chatHistory = [],
+  repositoryId,
+  planType
+}) => {
+  const [messages, setMessages] = useState<Message[]>(
+    chatHistory.length > 0 ? chatHistory : [{
       text: `Hi there! I'm your AI assistant for the ${repositoryName || 'repository'}. Ask me anything about this codebase and I'll help you understand it better.`,
       isUser: false,
       timestamp: new Date()
-    }
-  ]);
+    }]
+  );
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const subscription = useSubscription();
+  const [chatCount, setChatCount] = useState(0);
+  
+  // Load current chat usage on mount
+  useEffect(() => {
+    let ignore = false;
+    async function fetchCount() {
+      if (!repositoryId) return;
+      try {
+        const count = await RepositoryAnalysisService.getChatCount(repositoryId);
+        if (!ignore) setChatCount(count);
+      } catch (err) {
+        console.error('Failed to get chat usage:', err);
+      }
+    }
+    fetchCount();
+    return () => { ignore = true };
+  }, [repositoryId, user]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
-    const userMessage = {
+    const userMessage: Message = {
       text: inputValue,
       isUser: true,
       timestamp: new Date()
     };
-
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const response = await geminiService.answerCodebaseQuestion(inputValue, codebaseData);
-      
-      const aiMessage = {
+      // Enforce free plan chat limit
+      const isFree = (subscription?.plan_type ?? planType) === 'free';
+      if (isFree && chatCount >= MAX_FREE_CHAT_MESSAGES) {
+        toast({
+          title: "Free Chat Limit Reached",
+          description: `You've used ${MAX_FREE_CHAT_MESSAGES} free messages for this repo. Upgrade to continue!`,
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // AI response:
+      const response = await geminiService.answerCodebaseQuestion(userMessage.text, codebaseData);
+      const aiMessage: Message = {
         text: response,
         isUser: false,
         timestamp: new Date()
       };
+      const nextChat = [...messages, aiMessage];
 
-      setMessages(prev => [...prev, aiMessage]);
+      // Save chat to Supabase (for repo)
+      await RepositoryAnalysisService.updateChatHistory(codebaseData.repositoryInfo?.html_url, nextChat);
+      
+      // Increment chat usage for free plan
+      if (isFree && repositoryId) {
+        await RepositoryAnalysisService.incrementChatCount(repositoryId);
+        setChatCount(c => c + 1);
+      }
+
+      setMessages(nextChat);
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
@@ -64,7 +117,6 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repos
         description: "Failed to get response from AI. Please try again.",
         variant: "destructive"
       });
-      
       setMessages(prev => [...prev, {
         text: "I'm sorry, I encountered an error trying to answer your question. Please try again.",
         isUser: false,
@@ -72,6 +124,27 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repos
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Add handler to start a new chat
+  const handleNewChat = async () => {
+    const starterMsg = {
+      text: `New chat started for the ${repositoryName || 'repository'}.`,
+      isUser: false,
+      timestamp: new Date()
+    };
+    setMessages([starterMsg]);
+    if (repositoryId) {
+      await RepositoryAnalysisService.updateChatHistory(
+        codebaseData.repositoryInfo?.html_url,
+        [starterMsg]
+      );
+      if ((subscription?.plan_type ?? planType) === 'free') {
+        setChatCount(0); // Reset chat count when new chat
+        // Optionally reset usage in DB
+        await RepositoryAnalysisService.incrementChatCount(repositoryId);
+      }
     }
   };
 
@@ -196,18 +269,16 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repos
           
           <div className="flex gap-2 mt-4">
             <Input
-              placeholder="Ask a question about the codebase..."
+              placeholder={`Ask a question about the codebase...${subscription?.plan_type === 'free' ? ` (${chatCount}/${MAX_FREE_CHAT_MESSAGES} free messages used)` : ""}`}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSendMessage();
-              }}
-              disabled={isLoading}
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
+              disabled={isLoading || ((subscription?.plan_type ?? planType) === 'free' && chatCount >= MAX_FREE_CHAT_MESSAGES)}
               className="flex-grow"
             />
-            <Button 
+            <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={!inputValue.trim() || isLoading || ((subscription?.plan_type ?? planType) === 'free' && chatCount >= MAX_FREE_CHAT_MESSAGES)}
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -216,7 +287,15 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repos
               )}
               <span className="sr-only">Send</span>
             </Button>
+            <Button type="button" variant="outline" className="ml-2" onClick={handleNewChat}>
+              New Chat
+            </Button>
           </div>
+          {((subscription?.plan_type ?? planType) === 'free' && chatCount >= MAX_FREE_CHAT_MESSAGES) && (
+            <div className="text-red-600 text-xs mt-2">
+              Free users can send up to {MAX_FREE_CHAT_MESSAGES} messages per repo. Please upgrade your plan to continue!
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

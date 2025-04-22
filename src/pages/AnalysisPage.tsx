@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +16,7 @@ import CodebaseChatView from "@/components/analysis/CodebaseChatView";
 import DocumentationView from "@/components/analysis/DocumentationView";
 import LoadingState from "@/components/LoadingState";
 import { useToast } from "@/hooks/use-toast";
+import { RepositoryAnalysisService } from '@/services/RepositoryAnalysisService';
 
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
@@ -35,6 +35,7 @@ const AnalysisPage = () => {
     tutorials: false,
     ast: false
   });
+  const [repoRecord, setRepoRecord] = useState<any>(null); // store full record (for ID)
   
   useEffect(() => {
     const analyzeRepository = async () => {
@@ -169,7 +170,31 @@ const AnalysisPage = () => {
         };
         
         console.log("Setting final analysis data:", finalAnalysisData);
-        setAnalysisData(finalAnalysisData);
+        
+        // Always try to find existing analysis from Supabase first!
+        let repoRecord = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
+        setRepoRecord(repoRecord);
+
+        if (repoRecord && repoRecord.analysis_data) {
+          // Use analysis from DB
+          setRepoInfo(repoRecord.analysis_data.repositoryInfo || {});
+          setAnalysisData(repoRecord.analysis_data);
+          setIsLoading(false);
+          return;
+        }
+
+        // If not found, proceed as before and save to Supabase after analysis.
+        // After getting repoInfo and analysisData:
+        await RepositoryAnalysisService.saveRepositoryAnalysis(
+          repoUrl,
+          {
+            repositoryInfo: repoInfo,
+            ...finalAnalysisData
+          },
+          []
+        );
+        setRepoRecord(await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl));
+        setIsLoading(false);
         
         toast({
           title: "Analysis Complete",
@@ -316,20 +341,18 @@ const AnalysisPage = () => {
           </TabsContent>
           
           <TabsContent value="chat">
-            {analysisData ? (
+            {repoRecord && (
               <CodebaseChatView 
                 codebaseData={{
                   repositoryInfo: repoInfo,
-                  codeAnalysis: analysisData.codeAnalysis,
-                  criticalPaths: analysisData.criticalPathsAnalysis.criticalPaths
+                  codeAnalysis: analysisData?.codeAnalysis,
+                  criticalPaths: analysisData?.criticalPathsAnalysis?.criticalPaths
                 }}
-                repositoryName={repoInfo.name}
+                repositoryName={repoInfo?.name}
+                chatHistory={repoRecord.chat_history ?? []}
+                repositoryId={repoRecord.id}
+                planType={repoRecord.plan_type}
               />
-            ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
             )}
           </TabsContent>
           

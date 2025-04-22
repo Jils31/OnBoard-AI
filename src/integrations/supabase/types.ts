@@ -12,6 +12,7 @@ export type Database = {
       analyzed_repositories: {
         Row: {
           analysis_data: Json | null
+          chat_history: Json | null
           created_at: string
           id: string
           last_analyzed_at: string
@@ -23,6 +24,7 @@ export type Database = {
         }
         Insert: {
           analysis_data?: Json | null
+          chat_history?: Json | null
           created_at?: string
           id?: string
           last_analyzed_at?: string
@@ -34,6 +36,7 @@ export type Database = {
         }
         Update: {
           analysis_data?: Json | null
+          chat_history?: Json | null
           created_at?: string
           id?: string
           last_analyzed_at?: string
@@ -137,6 +140,41 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      user_chat_usage: {
+        Row: {
+          created_at: string
+          id: string
+          message_count: number
+          repository_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          repository_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          repository_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_chat_usage_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "analyzed_repositories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

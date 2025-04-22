@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ interface AnalyzedRepo {
   repository_owner: string;
   repository_url: string;
   last_analyzed_at: string;
+  analysis_data?: any;
 }
 
 const History = () => {
@@ -28,24 +28,23 @@ const History = () => {
       if (!user) return;
 
       try {
+        // Fetch *FULL* analysis_data from Supabase for display
         const { data, error } = await supabase
           .from('analyzed_repositories')
-          .select('*')
+          .select('id, repository_name, repository_owner, repository_url, last_analyzed_at, analysis_data')
           .eq('user_id', user.id)
           .order('last_analyzed_at', { ascending: false });
-          
-        if (error) throw error;
-        
-        setRepositories(data || []);
-      } catch (error) {
-        console.error('Error fetching analyzed repositories:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchAnalyzedRepositories();
-  }, [user]);
+      if (error) throw error;
+      setRepositories(data || []);
+    } catch (error) {
+      console.error('Error fetching analyzed repositories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchAnalyzedRepositories();
+}, [user]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
@@ -57,12 +56,14 @@ const History = () => {
     });
   };
   
+  // Use analysis_data if present for details
   const filteredRepositories = repositories.filter(repo => {
     const searchLower = searchQuery.toLowerCase();
     return (
       repo.repository_name.toLowerCase().includes(searchLower) ||
       repo.repository_owner.toLowerCase().includes(searchLower) ||
-      repo.repository_url.toLowerCase().includes(searchLower)
+      repo.repository_url.toLowerCase().includes(searchLower) ||
+      (repo.analysis_data?.repositoryInfo?.description?.toLowerCase().includes(searchLower) ?? false)
     );
   });
 
