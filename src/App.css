@@ -40,20 +40,3 @@
 .read-the-docs {
   color: #888;
 }
-
-/* Add grid background utility for landing page */
-.grid-bg {
-  background-color: transparent;
-  background-image: 
-    linear-gradient(to right, #e7e7ef 1px, transparent 1px),
-    linear-gradient(to bottom, #e7e7ef 1px, transparent 1px);
-  background-size: 32px 32px;
-  z-index: 0;
-  pointer-events: none;
-  position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-}
-/* Make sure the main app background stays white (for light theme) */
-body, .bg-background {
-  background-color: #fff !important;
-}

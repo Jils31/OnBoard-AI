@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import HeroSection from "@/components/HeroSection";
 import {
   Accordion,
   AccordionContent,
@@ -14,16 +15,16 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-// Animation configs
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
+
 const staggeredContainer = {
   animate: { transition: { staggerChildren: 0.1 } }
 };
 
-// Pricing plans (for Pricing and this page)
+// Use the same plans data as in Pricing.tsx to ensure consistency
 const plans = [
   {
     name: "Free",
@@ -79,186 +80,141 @@ const Index = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen relative bg-background text-foreground overflow-x-hidden">
-      {/* Grid lines - uses custom utility in App.css */}
-      <div className="fixed inset-0 pointer-events-none z-0 grid-bg"></div>
-
-      {/* Header with logo */}
-      <header className="w-full flex items-center justify-between py-6 px-6 md:px-12 bg-white/80 shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div className="flex items-center">
-          <img src="/logo.png" alt="Onboarding Buddy Logo" className="h-12 w-12 rounded-2xl shadow-lg mr-3 border-2 border-primary/20 bg-white" />
-          <span className="text-2xl font-black tracking-tight text-gray-900 select-none">
-            Onboarding Buddy
-          </span>
-        </div>
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="hover-scale text-gray-700/90 hover:text-blue-700 transition">Home</Link>
-          <Link to="/pricing" className="hover-scale text-gray-700/90 hover:text-blue-700 transition">Pricing</Link>
-          <Link to="/auth" className="hover-scale">
-            <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-2 rounded-xl shadow-lg hover:opacity-90 hover:scale-105 transition-all">
-              {user ? "Dashboard" : "Sign In"}
-            </Button>
-          </Link>
-        </nav>
-      </header>
-
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-24 bg-white z-10">
-        <motion.div
-          initial="initial" animate="animate"
-          variants={fadeInUp}
-          className="container mx-auto flex flex-col-reverse md:flex-row items-center justify-between gap-12 px-4"
-        >
-          <div className="max-w-2xl flex-1">
-            <Badge className="mb-4 px-3 py-1 text-base rounded-full bg-gradient-to-r from-blue-600 to-purple-400 text-white shadow-lg border-0 animate-fade-in">
-              Now with Pro features ✨
-            </Badge>
-            <h1 className="mb-8 text-5xl font-black tracking-tight leading-[1.13] sm:text-6xl bg-gradient-to-r from-blue-700 via-purple-700 to-pink-600 bg-clip-text text-transparent">
-              Effortless AI<br /><span className="text-gray-900">Codebase Onboarding</span>
-            </h1>
-            <motion.p
-              className="mb-8 text-xl text-blue-800/80"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25, duration: 0.7 }}
+      <section className="relative overflow-hidden py-20 sm:py-32">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-12">
+            <motion.div 
+              initial="initial"
+              animate="animate"
+              variants={fadeInUp}
+              className="max-w-2xl"
             >
-              Instantly visualize, document, and master any codebase with interactive AI-powered guidance.
-              <span className="block mt-2 text-blue-500/80 text-lg">
-                Designed for rapid onboarding and developer productivity.
-              </span>
-            </motion.p>
-            <motion.div className="flex flex-wrap gap-4" variants={staggeredContainer}>
-              {user ? (
-                <Link to="/dashboard">
-                  <Button size="lg" className="gap-2 bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 shadow-lg text-white px-8 rounded-xl hover:scale-105 transition">
-                    Go to Dashboard <ArrowRight size={18} />
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                <Link to="/auth">
-                  <Button size="lg" className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg text-white px-8 rounded-xl hover:scale-105 transition animate-pulse">
-                    Try for Free <ArrowRight size={18} />
-                  </Button>
-                </Link>
-                <Link to="/auth">
-                  <Button variant="outline" size="lg" className="gap-2 border-blue-400 bg-white/10 text-blue-900 hover:bg-blue-50 rounded-xl shadow-md">
-                    <GithubIcon className="h-5 w-5" />
-                    Sign in with GitHub
-                  </Button>
-                </Link>
-                </>
-              )}
+              <Badge className="mb-4 px-3 py-1 text-sm" variant="secondary">
+                Pro Plan - Now Available
+              </Badge>
+              <h1 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-6xl">
+                Understand codebases in 
+                <span className="text-blue-600 dark:text-blue-400"> minutes not weeks</span>
+              </h1>
+              <p className="mb-8 text-xl text-gray-600 dark:text-gray-300">
+                AI-powered repository analysis that helps developers get productive quickly.
+                Perfect for onboarding, code reviews, and technical documentation.
+              </p>
+              <motion.div 
+                className="flex flex-wrap gap-4"
+                variants={staggeredContainer}
+              >
+                {user ? (
+                  <Link to="/dashboard">
+                    <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700">
+                      Go to Dashboard <ArrowRight size={16} />
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/auth">
+                      <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700">
+                        Try for Free <ArrowRight size={16} />
+                      </Button>
+                    </Link>
+                    <Link to="/auth">
+                      <Button variant="outline" size="lg" className="gap-2">
+                        <GithubIcon className="h-5 w-5" />
+                        Sign in with GitHub
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </motion.div>
             </motion.div>
-          </div>
-          {/* Hero Visual */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.12 }}
-            className="w-full md:w-5/12 flex justify-center"
-          >
-            <div className="relative animate-fade-in-up">
-              {/* Inner card with micro-animation */}
-              <div className="absolute -inset-2 bg-gradient-to-tl from-blue-200/60 to-purple-100/40 rounded-3xl blur-[8px] opacity-50"></div>
-              <div className="bg-white rounded-2xl p-8 shadow-2xl border border-blue-100/50">
-                <div className="flex items-center gap-2 text-sm mb-6">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                  <span className="ml-2 text-blue-800/70">AI Code Analysis</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-7 bg-gradient-to-r from-blue-100 via-violet-100 to-blue-50/70 rounded w-full animate-pulse" />
-                  <div className="h-32 bg-gradient-to-br from-purple-100/40 to-blue-200/30 rounded w-full" />
-                  <div className="h-8 bg-gradient-to-r from-blue-100 via-violet-50 to-blue-50/60 rounded w-3/5" />
-                  <div className="flex gap-3">
-                    <div className="h-7 bg-gradient-to-r from-blue-50 via-blue-100/80 to-blue-100/70 rounded w-1/2" />
-                    <div className="h-7 bg-gradient-to-r from-purple-100/90 via-indigo-100/90 to-sky-50/70 rounded w-1/2" />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="md:w-5/12"
+            >
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur-md opacity-30"></div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-200 dark:border-gray-700 relative">
+                  <div className="flex items-center gap-2 text-sm mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                    <span className="ml-2 text-gray-500">Repository Analysis</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-32 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div className="flex gap-3">
+                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
+                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
+                    </div>
                   </div>
                 </div>
               </div>
-              {/* Floating grid accent ring */}
-              <div className="absolute -z-10 -inset-4 rounded-2xl border-8 border-purple-200/40 border-dashed animate-pulse"></div>
-            </div>
-          </motion.div>
-        </motion.div>
-        <div className="mt-10 flex justify-center">
-          <motion.div
-            className="animate-bounce"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1 }}
-          >
-            <ChevronDown className="h-8 w-8 text-blue-400/60" />
-          </motion.div>
-        </div>
-        {/* Arcade Interactive Tutorial Embed */}
-        <div className="container mx-auto px-4 py-10">
-          <h2 className="mb-2 text-2xl text-center font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">See It in Action</h2>
-          <div className="flex w-full justify-center mt-4 mb-8">
-            {/* Embedded Arcade Tutorial */}
-            <div style={{ position: "relative", paddingBottom: "calc(45.27777777777778% + 41px)", height: 0, width: "100%", maxWidth: "878px" }}>
-              <iframe
-                src="https://demo.arcade.software/B2XwUmuYzLaasGfuiWnR?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
-                title="Effortless Codebase Onboarding with Onboarding Buddy"
-                frameBorder="0"
-                loading="lazy"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  colorScheme: "light"
-                }}
-                allow="clipboard-write"
-                allowFullScreen
-              ></iframe>
-            </div>
+              
+              <div className="mt-8 flex justify-center">
+                <motion.div 
+                  className="animate-bounce"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1, duration: 1 }}
+                >
+                  <ChevronDown className="h-6 w-6 text-gray-400" />
+                </motion.div>
+              </div>
+            </motion.div>
           </div>
         </div>
+
+        {/* Stats Section */}
+        <motion.div 
+          className="container mx-auto px-4 mt-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { label: "Repositories Analyzed", value: "10,000+" },
+              { label: "Time Saved", value: "1000+ hrs" },
+              { label: "Active Users", value: "5,000+" },
+              { label: "Code Understanding", value: "3x Faster" },
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 + index * 0.1 }}
+                className="text-center"
+              >
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </section>
 
-      {/* Stats Section (light cards) */}
-      <motion.div
-        className="container mx-auto px-4 mt-10"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.6 }}
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { label: "Repositories Analyzed", value: "10,000+" },
-            { label: "Time Saved", value: "1000+ hrs" },
-            { label: "Active Users", value: "5,000+" },
-            { label: "Code Understanding", value: "3x Faster" },
-          ].map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 + index * 0.1 }}
-              className="text-center bg-white shadow rounded-2xl py-8 px-6 border border-gray-100"
-            >
-              <div className="text-3xl font-bold text-blue-700 drop-shadow">{stat.value}</div>
-              <div className="text-sm text-blue-800 mt-1">{stat.label}</div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Partner logos */}
-      <section className="py-16 bg-white/95">
+      {/* Partners Section */}
+      <section className="py-16 bg-white dark:bg-gray-800">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <p className="text-blue-800 mb-3">Trusted by engineers from</p>
+          <div className="text-center mb-10">
+            <p className="text-gray-500 dark:text-gray-400 mb-2">Trusted by developers from</p>
           </div>
-          <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16 opacity-90">
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
             {["Google", "Meta", "Stripe", "Airbnb", "Microsoft"].map((partner, index) => (
-              <div key={index} className="grayscale opacity-80 hover:opacity-100 hover:grayscale-0 transition-all">
-                <div className="h-10 w-28 bg-gradient-to-br from-blue-50/50 via-purple-100/30 to-blue-100/10 rounded-lg flex items-center justify-center border border-blue-200/30 backdrop-blur-sm">
-                  <span className="text-lg text-blue-800 font-semibold">{partner}</span>
+              <div key={index} className="grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
+                <div className="h-8 w-24 bg-gray-300 dark:bg-gray-600 rounded-md flex items-center justify-center">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">{partner}</span>
                 </div>
               </div>
             ))}
@@ -267,139 +223,152 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-white">
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <motion.div
+          <motion.div 
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow bg-gradient-to-r from-blue-500 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
-              Features
-            </h2>
-            <div className="w-32 h-1 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-7 rounded-full"></div>
-            <p className="mx-auto max-w-2xl text-blue-800/90 text-lg mb-2">
-              Unlock the full potential of your team's engineering velocity.
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Features</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              Powerful tools to help you understand any codebase faster and more efficiently
             </p>
           </motion.div>
-          {/* Feature Cards */}
-          <div className="grid md:grid-cols-3 gap-10">
+          
+          <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 title: "Smart Repository Analysis",
-                description: "AI deeply scans your repository, uncovering structure, dependencies, and the critical workflows that matter.",
-                icon: <Code className="h-10 w-10 text-blue-500" />
+                description: "Our AI analyzes repository structure, dependencies, and code paths to create a comprehensive understanding of your project.",
+                icon: <Code className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               },
               {
                 title: "Interactive Documentation",
-                description: "Visual guides, architecture maps, and dependency graphs help you truly understand systems in minutes.",
-                icon: <BrainCog className="h-10 w-10 text-fuchsia-500" />
+                description: "Generate visual maps, dependency graphs, and interactive guides that make understanding complex codebases intuitive.",
+                icon: <BrainCog className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               },
               {
                 title: "Accelerated Onboarding",
-                description: "Cut onboarding by 70% with stepwise walkthroughs, role-based learning, and personalized AI suggestions.",
-                icon: <Rocket className="h-10 w-10 text-green-600" />
+                description: "Reduce onboarding time by 70% with personalized learning paths and step-by-step walkthroughs of critical workflows.",
+                icon: <Rocket className="h-8 w-8 text-green-600 dark:text-green-400" />
               }
             ].map((feature, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: index * 0.08 }}
-                className="bg-white border border-blue-100 rounded-3xl p-10 shadow-xl hover:scale-105 hover:shadow-2xl transition-all"
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-md border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
               >
-                <div className="mb-6 rounded-xl bg-blue-50/70 p-4 w-fit">{feature.icon}</div>
-                <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
-                <p className="text-blue-800/80">{feature.description}</p>
+                <div className="mb-4 rounded-full bg-blue-100 p-3 w-fit dark:bg-blue-900/30">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {feature.description}
+                </p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-28 bg-gradient-to-r from-white via-blue-50 to-purple-50">
+      {/* How It Works Section */}
+      <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4">
-          <motion.div
+          <motion.div 
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">How It Works</h2>
-            <div className="w-24 h-1 bg-blue-400 mx-auto mb-7 rounded-full"></div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
           </motion.div>
-          <div className="grid md:grid-cols-2 gap-14 max-w-5xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, x: -32 }}
+          
+          <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
               className="flex flex-col justify-center"
             >
-              <h3 className="text-2xl font-bold mb-4">Instantly analyze any repository</h3>
-              <p className="text-blue-800/90 mb-5">
-                Connect GitHub or paste a repo URL. Get actionable insights—AI identifies best practices, technical debt, & critical flows—documented visually.
+              <h3 className="text-2xl font-bold mb-4">Analyze any repository instantly</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Simply connect your GitHub account or paste a repository URL. Our AI will analyze the codebase structure, identify key patterns, and generate comprehensive insights.
               </p>
-              <ul className="space-y-3 text-blue-900/80">
-                {["Critical path maps", "Dependency graphs", "Onboarding walkthroughs", "Architecture visuals"].map((item, index) => (
-                  <li key={index} className="flex items-start">
-                    <Check className="h-5 w-5 text-green-600 mt-1 mr-2" />
+              <ul className="space-y-3">
+                {["Identify critical code paths", "Map dependencies", "Document architecture", "Highlight important components"].map((item, i) => (
+                  <li key={i} className="flex items-start">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 mr-2" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </motion.div>
+            
             <motion.div
-              initial={{ opacity: 0, x: 32 }}
+              initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.18 }}
-              className="relative"
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <div className="rounded-3xl overflow-hidden shadow-2xl bg-blue-50 border border-blue-100/40">
-                <div className="p-6 md:p-10">
-                  <div className="space-y-2">
-                    <div className="h-5 bg-indigo-200/30 rounded w-3/4 mb-2 animate-pulse" />
-                    <div className="h-20 bg-violet-100/40 rounded w-full" />
-                    <div className="h-4 bg-blue-200/20 rounded w-1/2" />
-                    <div className="h-4 bg-blue-200/20 rounded w-11/12" />
-                    <div className="h-12 bg-indigo-100/30 rounded w-full mt-4" />
+              <div className="rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-100 dark:bg-gray-700 p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-5/6"></div>
+                    <div className="h-24 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-2/3"></div>
                   </div>
                 </div>
               </div>
-              <div className="absolute inset-0 z-0 pointer-events-none rounded-3xl border-dotted border-4 border-blue-100/30"></div>
             </motion.div>
           </div>
-          <div className="flex justify-center mt-20">
+          
+          <div className="flex justify-center mt-16">
             <Link to={user ? "/dashboard" : "/auth"}>
-              <Button size="lg" className="gap-2 bg-gradient-to-r from-blue-400 to-fuchsia-600 px-10 shadow-xl hover:scale-105 transition">
-                {user ? "Go to Dashboard" : "Get Started Free"}
-                <ArrowRight className="h-5 w-5" />
+              <Button size="lg" className="gap-2">
+                Get Started <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-24 bg-gradient-to-br from-blue-50 via-purple-50 to-white">
+      {/* Testimonials Section */}
+      <section className="py-20 bg-white dark:bg-gray-800">
         <div className="container mx-auto px-4">
-          <motion.div
+          <motion.div 
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">Testimonials</h2>
-            <div className="w-24 h-1 bg-blue-400 mx-auto mb-7 rounded-full"></div>
-            <p className="max-w-2xl mx-auto text-blue-800/80 text-lg">
-              See how Onboarding Buddy has transformed engineering orgs
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Testimonials</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              See what other developers are saying about Onboarding Buddy
             </p>
           </motion.div>
-          <div className="grid md:grid-cols-3 gap-10">
+          
+          <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 name: "Sarah Chen",
@@ -422,11 +391,11 @@ const Index = () => {
             ].map((testimonial, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.05 + index * 0.1 }}
-                className="bg-white p-7 rounded-2xl shadow-xl border border-blue-100/40"
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-gray-50 dark:bg-gray-700 p-6 rounded-xl shadow-md"
               >
                 <div className="flex items-center mb-4">
                   <Avatar className="h-12 w-12 mr-4">
@@ -434,77 +403,74 @@ const Index = () => {
                     <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-bold text-lg text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-blue-800/80">{testimonial.role}</p>
+                    <p className="font-bold">{testimonial.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="italic text-xl text-blue-800/90">"{testimonial.quote}"</p>
+                <p className="italic text-gray-600 dark:text-gray-300">"{testimonial.quote}"</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-28 bg-white">
+      {/* Pricing Section - Updated to match Pricing.tsx */}
+      <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4">
-          <motion.div
+          <motion.div 
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-100 bg-clip-text text-transparent">
-              Pricing
-            </h2>
-            <div className="w-24 h-1 bg-blue-300 mx-auto mb-6"></div>
-            <p className="max-w-2xl mx-auto text-blue-900 mb-4">
-              Choose the plan that fits your needs. Ramp up your team in days, not weeks.
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Pricing</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+              Choose the plan that works best for you
             </p>
           </motion.div>
-          <div className="grid md:grid-cols-3 gap-12 max-w-5xl mx-auto">
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {plans.map((plan, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.06 + index * 0.12 }}
-                className={`rounded-3xl shadow-2xl border border-blue-200/60 hover:border-purple-400 bg-gradient-to-tr ${
-                  plan.highlight
-                    ? 'from-blue-100/60 to-purple-100/60 scale-105 ring-4 ring-blue-100/40 relative'
-                    : 'from-blue-50/40 to-purple-50/40'
-                } hover:scale-105 transition-all`}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
+                  plan.highlight 
+                    ? 'border-blue-500 dark:border-blue-400 scale-105 relative' 
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
               >
                 {plan.highlight && (
-                  <div className="absolute -top-5 left-0 right-0 flex justify-center">
-                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-400 text-white shadow">Most Popular</Badge>
+                  <div className="absolute top-0 inset-x-0 transform -translate-y-1/2">
+                    <Badge className="bg-blue-600 hover:bg-blue-700 mx-auto">Most Popular</Badge>
                   </div>
                 )}
-                <div className="p-10 flex flex-col h-full">
-                  <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                  <div className="mb-2">
+                <div className="p-8">
+                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                  <div className="mb-4">
                     <span className="text-4xl font-extrabold">{plan.price}</span>
-                    {plan.period && (
-                      <span className="text-blue-800/70 ml-1">{plan.period}</span>
-                    )}
+                    {plan.period && <span className="text-gray-500 dark:text-gray-400 ml-1">{plan.period}</span>}
                   </div>
-                  <p className="text-blue-900/90 mb-7">{plan.description}</p>
-                  <ul className="space-y-2 mb-10">
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">{plan.description}</p>
+                  <ul className="space-y-3 mb-8">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-center">
                         <Check className="h-5 w-5 text-green-500 mr-2" />
-                        <span className="text-blue-900/90">{feature}</span>
+                        <span className="text-sm">{feature}</span>
                       </li>
                     ))}
                   </ul>
-                  <Link to="/pricing" className="mt-auto">
-                    <Button
-                      className={`w-full px-8 rounded-lg ${
-                        plan.highlight
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-purple-600 hover:to-blue-600 text-white'
-                          : 'bg-blue-50 text-blue-900 hover:bg-blue-100'
+                  <Link to="/pricing">
+                    <Button 
+                      className={`w-full ${
+                        plan.highlight 
+                          ? 'bg-blue-600 hover:bg-blue-700' 
+                          : 'bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600'
                       }`}
                     >
                       {plan.buttonText}
@@ -517,22 +483,61 @@ const Index = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-24 bg-gradient-to-tl from-white via-blue-50 to-purple-100 text-blue-900">
+      {/* Enhanced CTA Section with gradient */}
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 p-8 text-center text-white shadow-xl border border-blue-400/20 sm:p-12"
+          >
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+              Ready to understand codebases faster?
+            </h2>
+            <p className="mb-8 text-lg text-blue-100">
+              Join thousands of developers who are using Onboarding Buddy to analyze both public and private repositories.
+            </p>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              {user ? (
+                <Link to="/dashboard">
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    Go to Dashboard <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button size="lg" variant="secondary" className="gap-2 backdrop-blur-sm bg-white/30 hover:bg-white/40 border border-white/40">
+                    Start Free Trial <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              )}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-white dark:bg-gray-800">
+        <div className="container mx-auto px-4">
+          <motion.div 
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-zinc-900">FAQ</h2>
-            <div className="w-24 h-1 bg-blue-300 mx-auto mb-6"></div>
-            <p className="max-w-2xl mx-auto text-blue-800/80 text-lg mb-2">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">FAQ</h2>
+            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6"></div>
+            <p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
               Answers to commonly asked questions
             </p>
           </motion.div>
+          
           <div className="max-w-3xl mx-auto">
             <Accordion type="single" collapsible className="w-full">
               {[
@@ -557,53 +562,59 @@ const Index = () => {
                   answer: "Yes, you can upgrade or downgrade your subscription at any time. Plan changes take effect at the beginning of your next billing cycle."
                 }
               ].map((faq, index) => (
-                <AccordionItem key={index} value={`faq-${index}`} className="border-b border-blue-100/40">
-                  <AccordionTrigger className="text-left font-medium py-4 text-lg">
+                <AccordionItem key={index} value={`faq-${index}`} className="border-b border-gray-200 dark:border-gray-700">
+                  <AccordionTrigger className="text-left font-medium py-4">
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-blue-800/80 pb-4">
+                  <AccordionContent className="text-gray-600 dark:text-gray-300 pb-4">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
           </div>
-          <div className="text-center mt-16">
-            <p className="text-blue-800 mb-4 font-medium">
+          
+          <div className="text-center mt-12">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Still have questions? We're here to help.
             </p>
-            <Button variant="outline" className="gap-2 px-6 py-2 rounded-xl border-blue-400 text-blue-900/90 hover:bg-blue-100 shadow-md transition">
-              Contact Support <ArrowUpRight className="h-5 w-5" />
+            <Button variant="outline" className="gap-2">
+              Contact Support <ArrowUpRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
+      {/* CTA Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="rounded-3xl bg-gradient-to-r from-blue-100 via-purple-100 to-fuchsia-50 p-10 text-center text-blue-900 shadow-2xl border border-blue-100/20 sm:p-16 flex flex-col justify-center items-center"
+            transition={{ duration: 0.5 }}
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-center text-white dark:from-blue-800 dark:to-blue-900 sm:p-12"
           >
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl drop-shadow">Ready to understand codebases faster?</h2>
-            <p className="mb-8 text-lg">
-              Join thousands of developers using Onboarding Buddy for effortless onboarding, reviews, and documentation.
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+              Ready to understand codebases faster?
+            </h2>
+            <p className="mb-8 text-lg text-blue-100">
+              Join thousands of developers who are using Onboarding Buddy to analyze both public and private repositories.
             </p>
-            <motion.div whileHover={{ scale: 1.08 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
               {user ? (
                 <Link to="/dashboard">
-                  <Button size="lg" variant="secondary" className="gap-2 rounded-xl px-10 bg-blue-700 hover:bg-blue-800 text-white border-0">
-                    Go to Dashboard <ArrowRight size={20} />
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    Go to Dashboard <ArrowRight size={16} />
                   </Button>
                 </Link>
               ) : (
                 <Link to="/auth">
-                  <Button size="lg" variant="secondary" className="gap-2 rounded-xl px-10 bg-blue-700 hover:bg-blue-800 text-white border-0">
-                    Start For Free <ArrowRight size={20} />
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    Start Free Trial <ArrowRight size={16} />
                   </Button>
                 </Link>
               )}
@@ -611,6 +622,50 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Footer Section */}
+      <footer className="bg-gray-100 dark:bg-gray-900 py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="font-bold mb-4">Product</h3>
+              <ul className="space-y-2">
+                <li><Link to="/features" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Features</Link></li>
+                <li><Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Pricing</Link></li>
+                <li><Link to="/integrations" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Integrations</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Company</h3>
+              <ul className="space-y-2">
+                <li><Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">About Us</Link></li>
+                <li><Link to="/blog" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Blog</Link></li>
+                <li><Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Careers</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Resources</h3>
+              <ul className="space-y-2">
+                <li><Link to="/docs" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Documentation</Link></li>
+                <li><Link to="/api" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">API</Link></li>
+                <li><Link to="/support" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Support</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Legal</h3>
+              <ul className="space-y-2">
+                <li><Link to="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/cookies" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Cookies Policy</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+            <p>&copy; {new Date().getFullYear()} Onboarding Buddy. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
