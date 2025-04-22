@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -597,4 +598,17 @@ const Index = () => {
                 </Link>
               ) : (
                 <Link to="/auth">
-                  <Button size="lg" variant="secondary" className="gap-
+                  <Button size="lg" variant="secondary" className="gap-2 rounded-xl px-10 bg-white/30 hover:bg-white/20 text-white border-0">
+                    Start For Free <ArrowRight size={20} />
+                  </Button>
+                </Link>
+              )}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Index;
