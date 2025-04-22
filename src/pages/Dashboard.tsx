@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ interface AnalyzedRepo {
   repository_owner: string;
   repository_url: string;
   last_analyzed_at: string;
-  analysis_data: any;
 }
 
 const Dashboard = () => {
@@ -34,12 +34,13 @@ const Dashboard = () => {
       try {
         const { data, error } = await supabase
           .from('analyzed_repositories')
-          .select('id, repository_name, repository_owner, repository_url, last_analyzed_at, analysis_data')
+          .select('*')
           .eq('user_id', user.id)
           .order('last_analyzed_at', { ascending: false })
           .limit(5);
-
+          
         if (error) throw error;
+        
         setRecentRepos(data || []);
       } catch (error) {
         console.error('Error fetching analyzed repositories:', error);
@@ -47,6 +48,7 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
+
     fetchRecentAnalyses();
   }, [user]);
 

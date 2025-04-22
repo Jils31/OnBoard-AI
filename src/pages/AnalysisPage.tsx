@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +17,6 @@ import CodebaseChatView from "@/components/analysis/CodebaseChatView";
 import DocumentationView from "@/components/analysis/DocumentationView";
 import LoadingState from "@/components/LoadingState";
 import { useToast } from "@/hooks/use-toast";
-import { RepositoryAnalysisService } from '@/services/RepositoryAnalysisService';
 
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
@@ -35,7 +35,6 @@ const AnalysisPage = () => {
     tutorials: false,
     ast: false
   });
-  const [repoRecord, setRepoRecord] = useState<any>(null); // store full record (for ID)
   
   useEffect(() => {
     const analyzeRepository = async () => {
@@ -45,23 +44,6 @@ const AnalysisPage = () => {
         setAnalysisData(null); // Reset any previous analysis data
         
         console.log("Starting repository analysis for:", repoUrl);
-        
-        // Always try to find existing analysis from Supabase first!
-        let existingRepo = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
-        
-        // If we already have analysis data, use it
-        if (existingRepo && existingRepo.analysis_data) {
-          console.log("Found existing analysis in database:", existingRepo.id);
-          
-          if (existingRepo.analysis_data.repositoryInfo) {
-            setRepoInfo(existingRepo.analysis_data.repositoryInfo);
-          }
-          
-          setAnalysisData(existingRepo.analysis_data);
-          setRepoRecord(existingRepo);
-          setIsLoading(false);
-          return;
-        }
         
         // Parse repository URL
         const parsedRepo = githubService.parseRepoUrl(repoUrl);
@@ -179,7 +161,6 @@ const AnalysisPage = () => {
         
         // Combine all analysis results
         const finalAnalysisData = {
-          repositoryInfo: repoInfo,
           structureAnalysis,
           criticalPathsAnalysis,
           dependencyGraphAnalysis,
@@ -188,20 +169,7 @@ const AnalysisPage = () => {
         };
         
         console.log("Setting final analysis data:", finalAnalysisData);
-        
-        // Save the entire analysis data to Supabase
-        const savedRepo = await RepositoryAnalysisService.saveRepositoryAnalysis(
-          repoUrl,
-          finalAnalysisData
-        );
-        
-        if (savedRepo) {
-          console.log("Analysis saved to database:", savedRepo.id);
-          setRepoRecord(savedRepo);
-        }
-        
         setAnalysisData(finalAnalysisData);
-        setIsLoading(false);
         
         toast({
           title: "Analysis Complete",
@@ -209,6 +177,7 @@ const AnalysisPage = () => {
           variant: "default"
         });
         
+        setIsLoading(false);
       } catch (error) {
         console.error("Error analyzing repository:", error);
         setError(error instanceof Error ? error.message : "Unknown error occurred");
@@ -347,18 +316,20 @@ const AnalysisPage = () => {
           </TabsContent>
           
           <TabsContent value="chat">
-            {repoRecord && (
+            {analysisData ? (
               <CodebaseChatView 
                 codebaseData={{
                   repositoryInfo: repoInfo,
-                  codeAnalysis: analysisData?.codeAnalysis,
-                  criticalPaths: analysisData?.criticalPathsAnalysis?.criticalPaths
+                  codeAnalysis: analysisData.codeAnalysis,
+                  criticalPaths: analysisData.criticalPathsAnalysis.criticalPaths
                 }}
-                repositoryName={repoInfo?.name}
-                chatHistory={repoRecord.chat_history ?? []}
-                repositoryId={repoRecord.id}
-                planType={repoRecord.plan_type}
+                repositoryName={repoInfo.name}
               />
+            ) : (
+              <div className="space-y-4">
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              </div>
             )}
           </TabsContent>
           
