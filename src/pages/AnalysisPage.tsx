@@ -177,8 +177,15 @@ const AnalysisPage = () => {
 
         if (repoRecord && repoRecord.analysis_data) {
           // Use analysis from DB
-          setRepoInfo(repoRecord.analysis_data.repositoryInfo || {});
-          setAnalysisData(repoRecord.analysis_data);
+          const analysisData = repoRecord.analysis_data;
+          
+          if (typeof analysisData === 'object' && analysisData !== null && 'repositoryInfo' in analysisData) {
+            setRepoInfo(analysisData.repositoryInfo || {});
+          } else {
+            console.warn('Invalid analysis data format:', analysisData);
+          }
+          
+          setAnalysisData(analysisData);
           setIsLoading(false);
           return;
         }
