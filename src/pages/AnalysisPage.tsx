@@ -46,6 +46,23 @@ const AnalysisPage = () => {
         
         console.log("Starting repository analysis for:", repoUrl);
         
+        // Always try to find existing analysis from Supabase first!
+        let existingRepo = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
+        
+        // If we already have analysis data, use it
+        if (existingRepo && existingRepo.analysis_data) {
+          console.log("Found existing analysis in database:", existingRepo.id);
+          
+          if (existingRepo.analysis_data.repositoryInfo) {
+            setRepoInfo(existingRepo.analysis_data.repositoryInfo);
+          }
+          
+          setAnalysisData(existingRepo.analysis_data);
+          setRepoRecord(existingRepo);
+          setIsLoading(false);
+          return;
+        }
+        
         // Parse repository URL
         const parsedRepo = githubService.parseRepoUrl(repoUrl);
         if (!parsedRepo) {
@@ -162,6 +179,7 @@ const AnalysisPage = () => {
         
         // Combine all analysis results
         const finalAnalysisData = {
+          repositoryInfo: repoInfo,
           structureAnalysis,
           criticalPathsAnalysis,
           dependencyGraphAnalysis,
@@ -171,35 +189,18 @@ const AnalysisPage = () => {
         
         console.log("Setting final analysis data:", finalAnalysisData);
         
-        // Always try to find existing analysis from Supabase first!
-        let repoRecord = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
-        setRepoRecord(repoRecord);
-
-        if (repoRecord && repoRecord.analysis_data) {
-          // Use analysis from DB
-          const analysisData = repoRecord.analysis_data;
-          
-          if (typeof analysisData === 'object' && analysisData !== null && 'repositoryInfo' in analysisData) {
-            setRepoInfo(analysisData.repositoryInfo || {});
-          } else {
-            console.warn('Invalid analysis data format:', analysisData);
-          }
-          
-          setAnalysisData(analysisData);
-          setIsLoading(false);
-          return;
-        }
-
-        // If not found, proceed as before and save to Supabase after analysis.
-        // After getting repoInfo and analysisData:
-        await RepositoryAnalysisService.saveRepositoryAnalysis(
+        // Save the entire analysis data to Supabase
+        const savedRepo = await RepositoryAnalysisService.saveRepositoryAnalysis(
           repoUrl,
-          {
-            repositoryInfo: repoInfo,
-            ...finalAnalysisData
-          }
+          finalAnalysisData
         );
-        setRepoRecord(await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl));
+        
+        if (savedRepo) {
+          console.log("Analysis saved to database:", savedRepo.id);
+          setRepoRecord(savedRepo);
+        }
+        
+        setAnalysisData(finalAnalysisData);
         setIsLoading(false);
         
         toast({
@@ -208,7 +209,6 @@ const AnalysisPage = () => {
           variant: "default"
         });
         
-        setIsLoading(false);
       } catch (error) {
         console.error("Error analyzing repository:", error);
         setError(error instanceof Error ? error.message : "Unknown error occurred");

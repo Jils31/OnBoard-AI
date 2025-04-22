@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { SendIcon, Loader2, Code } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { SendIcon, Loader2, Code, AtSign } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { RepositoryAnalysisService } from '@/services/RepositoryAnalysisService';
 import { useAuth } from "@/context/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CodebaseChatViewProps {
   codebaseData: any;
@@ -27,6 +29,11 @@ interface Message {
   timestamp: Date;
 }
 
+interface FileOrDirectory {
+  path: string;
+  type: 'file' | 'directory';
+}
+
 const MAX_FREE_CHAT_MESSAGES = 5;
 
 const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
@@ -38,17 +45,58 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
 }) => {
   const [messages, setMessages] = useState<Message[]>(
     chatHistory.length > 0 ? chatHistory : [{
-      text: `Hi there! I'm your AI assistant for the ${repositoryName || 'repository'}. Ask me anything about this codebase and I'll help you understand it better.`,
+      text: `Hi there! I'm your AI assistant for the ${repositoryName || 'repository'}. Ask me anything about this codebase and I'll help you understand it better. You can @mention specific files or directories for detailed information.`,
       isUser: false,
       timestamp: new Date()
     }]
   );
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatCount, setChatCount] = useState(0);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [filesAndDirs, setFilesAndDirs] = useState<FileOrDirectory[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const subscription = useSubscription();
-  const [chatCount, setChatCount] = useState(0);
+  
+  // Extract files and directories from codebaseData
+  useEffect(() => {
+    if (codebaseData?.structureAnalysis?.structure) {
+      const extractPaths = (structure: any, prefix = ''): FileOrDirectory[] => {
+        let results: FileOrDirectory[] = [];
+        
+        if (Array.isArray(structure)) {
+          structure.forEach(item => {
+            if (typeof item === 'string') {
+              results.push({ 
+                path: prefix ? `${prefix}/${item}` : item, 
+                type: 'file' 
+              });
+            } else if (typeof item === 'object' && item !== null) {
+              Object.entries(item).forEach(([key, value]) => {
+                const newPrefix = prefix ? `${prefix}/${key}` : key;
+                results.push({ path: newPrefix, type: 'directory' });
+                results = [...results, ...extractPaths(value, newPrefix)];
+              });
+            }
+          });
+        } else if (typeof structure === 'object' && structure !== null) {
+          Object.entries(structure).forEach(([key, value]) => {
+            const newPrefix = prefix ? `${prefix}/${key}` : key;
+            results.push({ path: newPrefix, type: 'directory' });
+            results = [...results, ...extractPaths(value, newPrefix)];
+          });
+        }
+        
+        return results;
+      };
+      
+      setFilesAndDirs(extractPaths(codebaseData.structureAnalysis.structure));
+    }
+  }, [codebaseData]);
   
   // Load current chat usage on mount
   useEffect(() => {
@@ -65,6 +113,41 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
     fetchCount();
     return () => { ignore = true };
   }, [repositoryId, user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    // Check if we need to open the mention popup
+    const lastAtPos = value.lastIndexOf('@', e.target.selectionStart);
+    const cursorAfterAt = lastAtPos !== -1 && e.target.selectionStart > lastAtPos;
+    
+    if (cursorAfterAt) {
+      const searchText = value.substring(lastAtPos + 1, e.target.selectionStart);
+      setMentionSearch(searchText);
+      setCursorPosition(e.target.selectionStart);
+      setMentionOpen(true);
+    } else {
+      setMentionOpen(false);
+    }
+  };
+
+  const handleSelectMention = (path: string) => {
+    if (!inputRef.current) return;
+    
+    const beforeAt = inputValue.substring(0, inputValue.lastIndexOf('@', cursorPosition));
+    const afterCursor = inputValue.substring(cursorPosition);
+    
+    setInputValue(`${beforeAt}@${path}${afterCursor}`);
+    setMentionOpen(false);
+    
+    // Focus back on input
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 0);
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -98,7 +181,7 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
         isUser: false,
         timestamp: new Date()
       };
-      const nextChat = [...messages, aiMessage];
+      const nextChat = [...messages, userMessage, aiMessage];
 
       // Save chat to Supabase (for repo)
       await RepositoryAnalysisService.updateChatHistory(codebaseData.repositoryInfo?.html_url, nextChat);
@@ -109,7 +192,7 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
         setChatCount(c => c + 1);
       }
 
-      setMessages(nextChat);
+      setMessages([...messages, userMessage, aiMessage]);
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
@@ -130,7 +213,7 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
   // Add handler to start a new chat
   const handleNewChat = async () => {
     const starterMsg = {
-      text: `New chat started for the ${repositoryName || 'repository'}.`,
+      text: `New chat started for the ${repositoryName || 'repository'}. You can @mention specific files or directories for detailed information.`,
       isUser: false,
       timestamp: new Date()
     };
@@ -148,7 +231,6 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
     }
   };
 
-  // Custom renderer components for ReactMarkdown
   const MarkdownComponents = {
     code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
@@ -217,13 +299,19 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
     }
   };
 
+  // Filter files and directories for @mentions
+  const filteredFilesAndDirs = mentionSearch.trim() 
+    ? filesAndDirs.filter(item => 
+        item.path.toLowerCase().includes(mentionSearch.toLowerCase()))
+    : filesAndDirs;
+
   return (
     <div className="flex flex-col h-full">
       <Card className="flex-grow flex flex-col">
         <CardHeader>
           <CardTitle>Codebase Assistant</CardTitle>
           <CardDescription>
-            Ask questions about the codebase to better understand it
+            Ask questions about the codebase to better understand it. Use @mentions to reference specific files or directories.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col">
@@ -268,14 +356,66 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({
           </ScrollArea>
           
           <div className="flex gap-2 mt-4">
-            <Input
-              placeholder={`Ask a question about the codebase...${subscription?.plan_type === 'free' ? ` (${chatCount}/${MAX_FREE_CHAT_MESSAGES} free messages used)` : ""}`}
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
-              disabled={isLoading || ((subscription?.plan_type ?? planType) === 'free' && chatCount >= MAX_FREE_CHAT_MESSAGES)}
-              className="flex-grow"
-            />
+            <div className="relative flex-grow">
+              <Input
+                ref={inputRef}
+                placeholder={`Ask a question about the codebase...${subscription?.plan_type === 'free' ? ` (${chatCount}/${MAX_FREE_CHAT_MESSAGES} free messages used)` : ""}`}
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={e => { 
+                  if (e.key === 'Enter' && !mentionOpen) handleSendMessage();
+                  if (e.key === 'Escape' && mentionOpen) setMentionOpen(false);
+                }}
+                disabled={isLoading || ((subscription?.plan_type ?? planType) === 'free' && chatCount >= MAX_FREE_CHAT_MESSAGES)}
+                className="flex-grow pr-8"
+              />
+              <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-1"
+                  >
+                    <AtSign className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-64" align="start" side="bottom" sideOffset={4}>
+                  <Command>
+                    <CommandInput placeholder="Search files..." />
+                    <CommandList>
+                      <CommandEmpty>No files found.</CommandEmpty>
+                      <CommandGroup heading="Files and Directories">
+                        {filteredFilesAndDirs.slice(0, 10).map((item, i) => (
+                          <CommandItem 
+                            key={i} 
+                            onSelect={() => handleSelectMention(item.path)}
+                            className="flex items-center"
+                          >
+                            {item.type === 'file' ? (
+                              <Code className="mr-2 h-4 w-4" />
+                            ) : (
+                              <svg 
+                                className="mr-2 h-4 w-4" 
+                                width="24" height="24" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                              </svg>
+                            )}
+                            <span className="text-sm truncate">{item.path}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
             <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading || ((subscription?.plan_type ?? planType) === 'free' && chatCount >= MAX_FREE_CHAT_MESSAGES)}

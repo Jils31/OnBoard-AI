@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 interface AnalysisData {
   [key: string]: any;
+  repositoryInfo?: any;
 }
 
 export class RepositoryAnalysisService {
