@@ -11,34 +11,25 @@ interface LoadingStateProps {
     dependencies: boolean;
     tutorials: boolean;
   };
-  isStoredAnalysis?: boolean;
 }
 
-const LoadingState = ({ repo, progress, isStoredAnalysis = false }: LoadingStateProps) => {
+const LoadingState = ({ repo, progress }: LoadingStateProps) => {
   const [progressValue, setProgressValue] = useState(0);
   
   useEffect(() => {
-    // For stored analysis, immediately show 100% and don't update based on progress
-    if (isStoredAnalysis) {
-      setProgressValue(100);
-      return;
-    }
-    
-    // For new analysis, calculate progress based on completed steps
+    // Calculate progress percentage based on completed steps
     const completedSteps = Object.values(progress).filter(Boolean).length;
     const totalSteps = Object.values(progress).length;
     const newProgress = Math.floor((completedSteps / totalSteps) * 100);
     
     setProgressValue(newProgress);
-  }, [progress, isStoredAnalysis]);
+  }, [progress]);
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="max-w-md w-full mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold mb-2">
-            {isStoredAnalysis ? "Loading Saved Analysis" : "Analyzing Repository"}
-          </h2>
+          <h2 className="text-2xl font-bold mb-2">Analyzing Repository</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
             {repo.length > 50 ? repo.substring(0, 50) + "..." : repo}
           </p>
@@ -46,72 +37,59 @@ const LoadingState = ({ repo, progress, isStoredAnalysis = false }: LoadingState
           <p className="text-sm text-gray-500">{progressValue}% Complete</p>
         </div>
         
-        {!isStoredAnalysis ? (
-          <div className="space-y-4">
-            <div className="flex items-center">
-              {progress.structure ? (
-                <Check className="h-5 w-5 text-green-500 mr-3" />
-              ) : (
-                <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
-              )}
-              <div>
-                <p className="font-medium">Analyzing System Architecture</p>
-                <p className="text-sm text-gray-500">Identifying components and patterns</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              {progress.criticalPaths ? (
-                <Check className="h-5 w-5 text-green-500 mr-3" />
-              ) : (
-                <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
-              )}
-              <div>
-                <p className="font-medium">Identifying Critical Code Paths</p>
-                <p className="text-sm text-gray-500">Finding the most important code</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              {progress.dependencies ? (
-                <Check className="h-5 w-5 text-green-500 mr-3" />
-              ) : (
-                <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
-              )}
-              <div>
-                <p className="font-medium">Generating Dependency Graphs</p>
-                <p className="text-sm text-gray-500">Mapping relationships between components</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              {progress.tutorials ? (
-                <Check className="h-5 w-5 text-green-500 mr-3" />
-              ) : (
-                <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
-              )}
-              <div>
-                <p className="font-medium">Creating Interactive Tutorials</p>
-                <p className="text-sm text-gray-500">Building step-by-step guides</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center">
+        <div className="space-y-4">
+          <div className="flex items-center">
+            {progress.structure ? (
               <Check className="h-5 w-5 text-green-500 mr-3" />
-              <div>
-                <p className="font-medium">Loading Saved Analysis</p>
-                <p className="text-sm text-gray-500">Retrieving your previously analyzed data</p>
-              </div>
+            ) : (
+              <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
+            )}
+            <div>
+              <p className="font-medium">Analyzing System Architecture</p>
+              <p className="text-sm text-gray-500">Identifying components and patterns</p>
             </div>
           </div>
-        )}
+          
+          <div className="flex items-center">
+            {progress.criticalPaths ? (
+              <Check className="h-5 w-5 text-green-500 mr-3" />
+            ) : (
+              <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
+            )}
+            <div>
+              <p className="font-medium">Identifying Critical Code Paths</p>
+              <p className="text-sm text-gray-500">Finding the most important code</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center">
+            {progress.dependencies ? (
+              <Check className="h-5 w-5 text-green-500 mr-3" />
+            ) : (
+              <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
+            )}
+            <div>
+              <p className="font-medium">Generating Dependency Graphs</p>
+              <p className="text-sm text-gray-500">Mapping relationships between components</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center">
+            {progress.tutorials ? (
+              <Check className="h-5 w-5 text-green-500 mr-3" />
+            ) : (
+              <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
+            )}
+            <div>
+              <p className="font-medium">Creating Interactive Tutorials</p>
+              <p className="text-sm text-gray-500">Building step-by-step guides</p>
+            </div>
+          </div>
+        </div>
         
         <p className="mt-8 text-sm text-center text-gray-500">
-          {isStoredAnalysis ? 
-            "Your saved analysis will be displayed momentarily." : 
-            "This may take a few minutes for large repositories. We're using AI to analyze patterns and extract insights."}
+          This may take a few minutes for large repositories.
+          We're using AI to analyze patterns and extract insights.
         </p>
       </div>
     </div>

@@ -36,37 +36,6 @@ export class RepositoryAnalysisService {
     return data;
   }
 
-  static async getRepositoryAnalysis(repositoryUrl: string) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Normalize the repository URL to ensure consistent lookup
-      const normalizedUrl = repositoryUrl.replace(/\/$/, '').split('?')[0];
-
-      const { data, error } = await supabase
-        .from('analyzed_repositories')
-        .select('*')
-        .ilike('repository_url', `${normalizedUrl}%`) // Use case-insensitive LIKE with wildcard to match URLs that might have query params
-        .eq('user_id', user.id)
-        .order('last_analyzed_at', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error('Repository analysis fetch error:', error);
-        throw error;
-      }
-
-      return data && data.length > 0 ? data[0] : null;
-    } catch (error) {
-      console.error('Error in getRepositoryAnalysis:', error);
-      throw error;
-    }
-  }
-
   static parseRepoUrl(url: string): { owner: string; repo: string } {
     const githubRegex = /https:\/\/github\.com\/([^\/]+)\/([^\/]+)/;
     const match = url.match(githubRegex);
@@ -77,7 +46,7 @@ export class RepositoryAnalysisService {
 
     return { 
       owner: match[1], 
-      repo: match[2].replace(/\/$/, '').split('?')[0] // Clean repo name by removing trailing slash and query params
+      repo: match[2] 
     };
   }
 

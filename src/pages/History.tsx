@@ -138,11 +138,6 @@ const History = () => {
       });
     }
   };
-  
-  const handleViewAnalysis = (repoUrl: string) => {
-    // Use a stable source parameter without timestamp to avoid unnecessary reanalysis
-    navigate(`/analysis?repo=${encodeURIComponent(repoUrl)}&source=history`);
-  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -257,7 +252,7 @@ const History = () => {
                           ) : (
                             <Button 
                               size="sm"
-                              onClick={() => handleViewAnalysis(repo.repository_url)}
+                              onClick={() => navigate(`/analysis?repo=${encodeURIComponent(repo.repository_url)}&t=${Date.now()}`)}
                             >
                               View Analysis
                             </Button>
