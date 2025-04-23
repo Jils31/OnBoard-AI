@@ -27,9 +27,10 @@ const AnalysisPage = () => {
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingStoredAnalysis, setLoadingStoredAnalysis] = useState(source === "history");
+  const [loadingStoredAnalysis, setLoadingStoredAnalysis] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [repoInfo, setRepoInfo] = useState<any>(null);
+  const [analysisInitialized, setAnalysisInitialized] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState({
     structure: false,
     criticalPaths: false,
@@ -183,24 +184,29 @@ const AnalysisPage = () => {
   }, [repoUrl, repoInfo, analysisData, updateSectionStatus, toast, role, setAnalysisData]);
 
   useEffect(() => {
+    // Prevent multiple initializations - only run this effect once per URL
+    if (analysisInitialized || !repoUrl) return;
+    
     const analyzeRepository = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        setAnalysisData(null); // Reset any previous analysis data
+        setAnalysisData(null);
+        setAnalysisInitialized(true);
         
         console.log("Starting repository analysis for:", repoUrl);
         console.log("Source:", source);
 
-        // If coming from history, we know we have a stored analysis to load
+        // Check if we're coming from history
         const isFromHistory = source === "history";
         setLoadingStoredAnalysis(isFromHistory);
 
-        // First, try to fetch stored analysis from database
+        // Try to fetch stored analysis
         let storedAnalysis = null;
         let shouldPerformNewAnalysis = true;
         
         try {
+          console.log("Attempting to fetch stored analysis for:", repoUrl);
           storedAnalysis = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
           
           // If we have stored analysis data, use it
@@ -247,11 +253,10 @@ const AnalysisPage = () => {
           }
         } catch (fetchError) {
           console.error("Error fetching stored analysis:", fetchError);
-          // Continue with new analysis if stored analysis cannot be retrieved
           shouldPerformNewAnalysis = true;
         }
         
-        // If we loaded the stored analysis successfully, we're done
+        // If we've already loaded stored analysis successfully, exit early
         if (!shouldPerformNewAnalysis) {
           return;
         }
@@ -458,7 +463,10 @@ const AnalysisPage = () => {
     if (repoUrl) {
       analyzeRepository();
     }
-  }, [repoUrl, role, toast, regenerateSection, source]);
+    
+    // Only include repoUrl in the dependency array to prevent re-running when other states change
+    // Use analysisInitialized to ensure this only runs once per URL
+  }, [repoUrl, source, analysisInitialized]);
 
   // Helper UI for error status + regenerate
   const errorBlock = (section: keyof typeof sectionStatus) => {

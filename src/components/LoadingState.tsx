@@ -18,7 +18,7 @@ const LoadingState = ({ repo, progress, isStoredAnalysis = false }: LoadingState
   const [progressValue, setProgressValue] = useState(0);
   
   useEffect(() => {
-    // For stored analysis, we want to immediately show 100%
+    // For stored analysis, immediately show 100% and don't update based on progress
     if (isStoredAnalysis) {
       setProgressValue(100);
       return;

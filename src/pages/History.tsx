@@ -140,7 +140,7 @@ const History = () => {
   };
   
   const handleViewAnalysis = (repoUrl: string) => {
-    // Use a clearer source parameter and ensure we're not causing repeated analysis
+    // Use a stable source parameter without timestamp to avoid unnecessary reanalysis
     navigate(`/analysis?repo=${encodeURIComponent(repoUrl)}&source=history`);
   };
 

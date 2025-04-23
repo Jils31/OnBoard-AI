@@ -37,26 +37,34 @@ export class RepositoryAnalysisService {
   }
 
   static async getRepositoryAnalysis(repositoryUrl: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-    const { data, error } = await supabase
-      .from('analyzed_repositories')
-      .select('*')
-      .eq('repository_url', repositoryUrl)
-      .eq('user_id', user.id)
-      .order('last_analyzed_at', { ascending: false })
-      .limit(1);
+      // Normalize the repository URL to ensure consistent lookup
+      const normalizedUrl = repositoryUrl.replace(/\/$/, '').split('?')[0];
 
-    if (error) {
-      console.error('Repository analysis fetch error:', error);
+      const { data, error } = await supabase
+        .from('analyzed_repositories')
+        .select('*')
+        .ilike('repository_url', `${normalizedUrl}%`) // Use case-insensitive LIKE with wildcard to match URLs that might have query params
+        .eq('user_id', user.id)
+        .order('last_analyzed_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Repository analysis fetch error:', error);
+        throw error;
+      }
+
+      return data && data.length > 0 ? data[0] : null;
+    } catch (error) {
+      console.error('Error in getRepositoryAnalysis:', error);
       throw error;
     }
-
-    return data && data.length > 0 ? data[0] : null;
   }
 
   static parseRepoUrl(url: string): { owner: string; repo: string } {
