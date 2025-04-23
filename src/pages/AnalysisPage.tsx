@@ -19,6 +19,56 @@ import { useToast } from "@/hooks/use-toast";
 import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
 import { supabase } from "@/integrations/supabase/client";
 
+const FALLBACK_ARCHITECTURE_PATTERN = "Modern Web Application Architecture";
+const FALLBACK_CRITICAL_PATHS = [
+  {
+    name: "Core Application Flow",
+    description: "The main application workflow that users interact with",
+    importance: 9,
+    files: ["src/App.tsx", "src/main.tsx", "src/pages/Index.tsx"],
+    dataFlow: ["User accesses application", "App initializes", "Main functionality loads"]
+  }
+];
+const FALLBACK_DEPENDENCY_GRAPH_LABEL = "App"; // from GeminiService fallback nodes
+const FALLBACK_TUTORIAL_OVERVIEW_FRAGMENT = "introduction to the"; // starts with "This tutorial provides an introduction..."
+
+const isArchitectureFallback = (structureAnalysis: any) => {
+  return (
+    structureAnalysis &&
+    structureAnalysis.architecture &&
+    structureAnalysis.architecture.pattern === FALLBACK_ARCHITECTURE_PATTERN
+  );
+};
+const isCriticalPathsFallback = (criticalPathsAnalysis: any) => {
+  return (
+    criticalPathsAnalysis &&
+    Array.isArray(criticalPathsAnalysis.criticalPaths) &&
+    criticalPathsAnalysis.criticalPaths.length > 0 &&
+    criticalPathsAnalysis.criticalPaths[0].name === FALLBACK_CRITICAL_PATHS[0].name
+  );
+};
+const isDependencyGraphFallback = (dependencyGraphAnalysis: any) => {
+  return (
+    dependencyGraphAnalysis &&
+    dependencyGraphAnalysis.dependencyGraph &&
+    Array.isArray(dependencyGraphAnalysis.dependencyGraph.nodes) &&
+    dependencyGraphAnalysis.dependencyGraph.nodes.length > 0 &&
+    dependencyGraphAnalysis.dependencyGraph.nodes[0].label === FALLBACK_DEPENDENCY_GRAPH_LABEL
+  );
+};
+// AST fallback: not needed (just won't show), Tutorials fallback:
+const isTutorialsFallback = (tutorialsAnalysis: any) => {
+  return (
+    tutorialsAnalysis &&
+    typeof tutorialsAnalysis.overview === "string" &&
+    tutorialsAnalysis.overview.toLowerCase().includes(FALLBACK_TUTORIAL_OVERVIEW_FRAGMENT)
+  );
+};
+// Documentation fallback: check for "Project Documentation" title
+const isDocumentationFallback = (doc: any) => {
+  return doc && typeof doc.title === "string" && doc.title.startsWith("Project Documentation");
+};
+
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
   const repoUrl = searchParams.get("repo") || "";
@@ -36,6 +86,121 @@ const AnalysisPage = () => {
     tutorials: false,
     ast: false
   });
+
+  const [regenerating, setRegenerating] = useState({
+    structure: false,
+    criticalPaths: false,
+    dependencies: false,
+    documentation: false,
+    tutorials: false,
+  });
+
+  // --- Add regenerate handlers ---
+  // Each calls the relevant analysis step only
+  const regenerateSection = async (section: string) => {
+    setRegenerating(r => ({ ...r, [section]: true }));
+    try {
+      const parsedRepo = githubService.parseRepoUrl(repoUrl);
+      const { owner, repo } = parsedRepo;
+      const githubToken = await RepositoryAnalysisService.getGitHubToken();
+      const githubServiceWithToken = githubToken
+        ? new GitHubService(githubToken)
+        : githubService;
+      const repoInfoValue = repoInfo || (await githubServiceWithToken.getRepositoryInfo(owner, repo));
+      // Only skip refetching repo info if already exists
+
+      if (section === "structure") {
+        // Redo only structureAnalysis and refresh UI
+        const repoStructure = await githubServiceWithToken.getRepositoryStructure(owner, repo);
+        const mostChangedFiles = await githubServiceWithToken.getMostChangedFiles(owner, repo, 10);
+        const structureAnalysis = await geminiService.analyzeRepositoryStructure({
+          repositoryInfo: repoInfoValue,
+          structure: repoStructure,
+          mostChangedFiles
+        });
+        setAnalysisData((ad: any) => ad
+          ? { ...ad, structureAnalysis }
+          : { structureAnalysis }
+        );
+      }
+      if (section === "criticalPaths") {
+        // Need mostChangedFiles and fileContents
+        const mostChangedFiles = await githubServiceWithToken.getMostChangedFiles(owner, repo, 10);
+        // reuse getting file contents logic
+        const fileContents = [];
+        for (const file of mostChangedFiles.slice(0, 5)) {
+          try {
+            const content = await githubServiceWithToken.getFileContent(owner, repo, file.filename);
+            fileContents.push({
+              path: file.filename,
+              content,
+              changeFrequency: file.count
+            });
+          } catch {}
+        }
+        const codeAnalysis = analysisData?.codeAnalysis
+          ? analysisData.codeAnalysis
+          : await codeAnalysisService.analyzeCode(fileContents);
+        const criticalPathsAnalysis = await geminiService.identifyCriticalCodePaths({
+          mostChangedFiles,
+          fileContents,
+          codeAnalysis,
+          role
+        });
+        setAnalysisData((ad: any) => ad
+          ? { ...ad, criticalPathsAnalysis }
+          : { criticalPathsAnalysis }
+        );
+      }
+      if (section === "dependencies") {
+        // reuse codeAnalysis and repoStructure if present
+        const codeAnalysis = analysisData?.codeAnalysis || {};
+        const repoStructure = analysisData?.structureAnalysis?.repoStructure || [];
+        const dependencyGraphAnalysis = await geminiService.generateDependencyGraph({
+          codeAnalysis: codeAnalysis.dependencies,
+          repositoryStructure: repoStructure
+        });
+        setAnalysisData((ad: any) => ad
+          ? { ...ad, dependencyGraphAnalysis }
+          : { dependencyGraphAnalysis }
+        );
+      }
+      if (section === "documentation") {
+        const doc = await geminiService.generateDocumentation({
+          repositoryInfo: repoInfoValue,
+          codeAnalysis: analysisData?.codeAnalysis,
+          criticalPaths: analysisData?.criticalPathsAnalysis?.criticalPaths
+        });
+        setAnalysisData((ad: any) => ad
+          ? { ...ad, documentation: doc }
+          : { documentation: doc }
+        );
+      }
+      if (section === "tutorials") {
+        const tutorialsAnalysis = await geminiService.createTutorial({
+          criticalPaths: analysisData?.criticalPathsAnalysis?.criticalPaths,
+          repositoryInfo: repoInfoValue,
+          role
+        });
+        setAnalysisData((ad: any) => ad
+          ? { ...ad, tutorialsAnalysis }
+          : { tutorialsAnalysis }
+        );
+      }
+      toast({
+        title: "Regeneration Complete",
+        description: `The ${section} section was regenerated.`
+      });
+    } catch (error) {
+      toast({
+        title: `Error regenerating ${section}`,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setRegenerating(r => ({ ...r, [section]: false }));
+    }
+  };
   
   useEffect(() => {
     const analyzeRepository = async () => {
@@ -339,7 +504,22 @@ const AnalysisPage = () => {
         <div className="mt-6">
           <TabsContent value="architecture">
             {analysisData ? (
-              <ArchitectureMap data={analysisData.structureAnalysis} />
+              isArchitectureFallback(analysisData.structureAnalysis) ? (
+                <div className="flex flex-col items-center justify-center min-h-40 border rounded-md bg-muted/40 py-8">
+                  <p className="mb-2 text-lg text-destructive font-medium">AI hit API limit for system architecture!</p>
+                  <Button
+                    onClick={() => regenerateSection("structure")}
+                    disabled={regenerating.structure}
+                  >
+                    {regenerating.structure ? "Regenerating..." : "Regenerate Architecture"}
+                  </Button>
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    Try again in a few minutes to generate real insights.
+                  </p>
+                </div>
+              ) : (
+                <ArchitectureMap data={analysisData.structureAnalysis} />
+              )
             ) : (
               <div className="space-y-4">
                 <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
@@ -350,10 +530,25 @@ const AnalysisPage = () => {
           
           <TabsContent value="critical-paths">
             {analysisData ? (
-              <CriticalPathsView 
-                data={analysisData.criticalPathsAnalysis} 
-                role={role} 
-              />
+              isCriticalPathsFallback(analysisData.criticalPathsAnalysis) ? (
+                <div className="flex flex-col items-center justify-center min-h-40 border rounded-md bg-muted/40 py-8">
+                  <p className="mb-2 text-lg text-destructive font-medium">AI hit API limit for critical paths!</p>
+                  <Button
+                    onClick={() => regenerateSection("criticalPaths")}
+                    disabled={regenerating.criticalPaths}
+                  >
+                    {regenerating.criticalPaths ? "Regenerating..." : "Regenerate Critical Paths"}
+                  </Button>
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    Try again in a few minutes to generate real insights.
+                  </p>
+                </div>
+              ) : (
+                <CriticalPathsView 
+                  data={analysisData.criticalPathsAnalysis} 
+                  role={role} 
+                />
+              )
             ) : (
               <div className="space-y-4">
                 <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
@@ -364,10 +559,25 @@ const AnalysisPage = () => {
           
           <TabsContent value="dependencies">
             {analysisData ? (
-              <DependencyGraph 
-                data={analysisData.dependencyGraphAnalysis} 
-                codeAnalysis={analysisData.codeAnalysis} 
-              />
+              isDependencyGraphFallback(analysisData.dependencyGraphAnalysis) ? (
+                <div className="flex flex-col items-center justify-center min-h-40 border rounded-md bg-muted/40 py-8">
+                  <p className="mb-2 text-lg text-destructive font-medium">AI hit API limit for dependency graph!</p>
+                  <Button
+                    onClick={() => regenerateSection("dependencies")}
+                    disabled={regenerating.dependencies}
+                  >
+                    {regenerating.dependencies ? "Regenerating..." : "Regenerate Dependency Graph"}
+                  </Button>
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    Try again in a few minutes to generate real insights.
+                  </p>
+                </div>
+              ) : (
+                <DependencyGraph 
+                  data={analysisData.dependencyGraphAnalysis} 
+                  codeAnalysis={analysisData.codeAnalysis} 
+                />
+              )
             ) : (
               <div className="space-y-4">
                 <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
@@ -406,12 +616,27 @@ const AnalysisPage = () => {
           </TabsContent>
           
           <TabsContent value="documentation">
-            {analysisData ? (
-              <DocumentationView 
-                repositoryInfo={repoInfo}
-                codeAnalysis={analysisData.codeAnalysis}
-                criticalPaths={analysisData.criticalPathsAnalysis?.criticalPaths}
-              />
+            {analysisData && analysisData.documentation ? (
+              isDocumentationFallback(analysisData.documentation) ? (
+                <div className="flex flex-col items-center justify-center min-h-40 border rounded-md bg-muted/40 py-8">
+                  <p className="mb-2 text-lg text-destructive font-medium">AI hit API limit for documentation!</p>
+                  <Button
+                    onClick={() => regenerateSection("documentation")}
+                    disabled={regenerating.documentation}
+                  >
+                    {regenerating.documentation ? "Regenerating..." : "Regenerate Documentation"}
+                  </Button>
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    Try again in a few minutes to generate real documentation.
+                  </p>
+                </div>
+              ) : (
+                <DocumentationView
+                  repositoryInfo={repoInfo}
+                  codeAnalysis={analysisData.codeAnalysis}
+                  criticalPaths={analysisData.criticalPathsAnalysis?.criticalPaths}
+                />
+              )
             ) : (
               <div className="space-y-4">
                 <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
@@ -422,10 +647,25 @@ const AnalysisPage = () => {
           
           <TabsContent value="tutorials">
             {analysisData ? (
-              <TutorialView 
-                data={analysisData.tutorialsAnalysis} 
-                role={role} 
-              />
+              isTutorialsFallback(analysisData.tutorialsAnalysis) ? (
+                <div className="flex flex-col items-center justify-center min-h-40 border rounded-md bg-muted/40 py-8">
+                  <p className="mb-2 text-lg text-destructive font-medium">AI hit API limit for tutorials!</p>
+                  <Button
+                    onClick={() => regenerateSection("tutorials")}
+                    disabled={regenerating.tutorials}
+                  >
+                    {regenerating.tutorials ? "Regenerating..." : "Regenerate Tutorials"}
+                  </Button>
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    Try again in a few minutes to generate real tutorials.
+                  </p>
+                </div>
+              ) : (
+                <TutorialView 
+                  data={analysisData.tutorialsAnalysis} 
+                  role={role} 
+                />
+              )
             ) : (
               <div className="space-y-4">
                 <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
