@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,6 @@ const AnalysisPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [repoInfo, setRepoInfo] = useState<any>(null);
-  const [analysisData, setAnalysisData] = useState<any>(null);
   const [analysisProgress, setAnalysisProgress] = useState({
     structure: false,
     criticalPaths: false,
@@ -37,6 +36,150 @@ const AnalysisPage = () => {
     ast: false
   });
   
+  // Add more granular loading and error state per analysis section
+  const [analysisData, setAnalysisData] = useState<any>(null);
+
+  // New: section-specific error/loading states
+  const [sectionStatus, setSectionStatus] = useState({
+    structure: { loading: false, error: null },
+    criticalPaths: { loading: false, error: null },
+    dependencies: { loading: false, error: null },
+    tutorials: { loading: false, error: null },
+    ast: { loading: false, error: null }
+  });
+
+  // Helper to update section status
+  const updateSectionStatus = useCallback((section, newStatus) => {
+    setSectionStatus(prev => ({
+      ...prev,
+      [section]: { ...prev[section], ...newStatus }
+    }));
+  }, []);
+
+  // Function to handle section (re-)generation with error boundary
+  const regenerateSection = useCallback(async (sectionName: keyof typeof sectionStatus) => {
+    updateSectionStatus(sectionName, { loading: true, error: null });
+    try {
+      // Fetch fresh token each time just in case (same as useEffect)
+      const githubToken = await RepositoryAnalysisService.getGitHubToken();
+      const githubServiceWithToken = githubToken ? 
+        new GitHubService(githubToken) : 
+        githubService;
+
+      // Parse repository URL
+      const parsedRepo = githubService.parseRepoUrl(repoUrl);
+      if (!parsedRepo) throw new Error("Invalid repository URL");
+      const { owner, repo } = parsedRepo;
+
+      // Reload repo info if needed
+      let repoInfoLocal = repoInfo;
+      if (!repoInfo) {
+        repoInfoLocal = await githubServiceWithToken.getRepositoryInfo(owner, repo);
+        setRepoInfo(repoInfoLocal);
+      }
+
+      // On regeneration, use existing data if available.
+      let currentData = analysisData || {};
+
+      switch (sectionName) {
+        case "structure":
+          // 2. Get repository structure
+          updateSectionStatus("structure", { loading: true, error: null });
+          const repoStructure = await githubServiceWithToken.getRepositoryStructure(owner, repo);
+          // 3. Get most changed files
+          const mostChangedFiles = await githubServiceWithToken.getMostChangedFiles(owner, repo, 10);
+          // 4. Analyze repository structure
+          const structureAnalysis = await geminiService.analyzeRepositoryStructure({
+            repositoryInfo: repoInfoLocal,
+            structure: repoStructure,
+            mostChangedFiles
+          });
+          setAnalysisData({
+            ...currentData,
+            structureAnalysis
+          });
+          break;
+        case "criticalPaths":
+          // Need supporting data for context
+          if (!currentData.structureAnalysis) throw new Error("Structure data missing");
+          const critPaths = await geminiService.identifyCriticalCodePaths({
+            mostChangedFiles: currentData.structureAnalysis.mostChangedFiles || [],
+            fileContents: [],
+            codeAnalysis: currentData.codeAnalysis || {},
+            role
+          });
+          setAnalysisData({
+            ...currentData,
+            criticalPathsAnalysis: critPaths
+          });
+          break;
+        case "dependencies":
+          if (!currentData.codeAnalysis) throw new Error("Code analysis missing");
+          const dependencyGraph = await geminiService.generateDependencyGraph({
+            codeAnalysis: currentData.codeAnalysis.dependencies,
+            repositoryStructure: currentData.structureAnalysis?.repoStructure
+          });
+          setAnalysisData({
+            ...currentData,
+            dependencyGraphAnalysis: dependencyGraph
+          });
+          break;
+        case "ast":
+          // This block assumes a code analysis step exists
+          if (!currentData.structureAnalysis || !currentData.structureAnalysis.mostChangedFiles) {
+            throw new Error("Structure data missing");
+          }
+          // Only fetch content of the most changed files
+          const { owner: ownerAst, repo: repoAst } = parsedRepo;
+          const githubTokenAst = await RepositoryAnalysisService.getGitHubToken();
+          const githubServiceAst = githubTokenAst ? new GitHubService(githubTokenAst) : githubService;
+          const fileContents = [];
+          for (const file of currentData.structureAnalysis.mostChangedFiles.slice(0, 5)) {
+            try {
+              const content = await githubServiceAst.getFileContent(ownerAst, repoAst, file.filename);
+              fileContents.push({
+                path: file.filename,
+                content,
+                changeFrequency: file.count
+              });
+            } catch (err) {}
+          }
+          const codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
+          setAnalysisData({
+            ...currentData,
+            codeAnalysis
+          });
+          break;
+        case "tutorials":
+          if (!currentData.criticalPathsAnalysis) throw new Error("Critical paths missing");
+          const tutorialsAnalysis = await geminiService.createTutorial({
+            criticalPaths: currentData.criticalPathsAnalysis.criticalPaths,
+            repositoryInfo: repoInfoLocal,
+            role
+          });
+          setAnalysisData({
+            ...currentData,
+            tutorialsAnalysis
+          });
+          break;
+        default:
+          throw new Error("Unknown analysis section");
+      }
+      updateSectionStatus(sectionName, { loading: false, error: null });
+      toast({
+        title: `Section "${sectionName}" regenerated`,
+        description: "Analysis for this section has been regenerated."
+      });
+    } catch (error: any) {
+      updateSectionStatus(sectionName, { loading: false, error: error?.message || "API error" });
+      toast({
+        title: "AI API Limit Hit",
+        description: error?.message || "The AI API limit was reached. Please try again shortly.",
+        variant: "destructive"
+      });
+    }
+  }, [repoUrl, repoInfo, analysisData, updateSectionStatus, toast, role, setAnalysisData]);
+
   useEffect(() => {
     const analyzeRepository = async () => {
       try {
@@ -130,6 +273,7 @@ const AnalysisPage = () => {
         
         // 2. Get repository structure
         console.log("Fetching repository structure...");
+        updateSectionStatus("structure", { loading: true, error: null });
         const repoStructure = await githubServiceWithToken.getRepositoryStructure(owner, repo);
         console.log("Repository structure fetched", repoStructure);
         
@@ -147,6 +291,8 @@ const AnalysisPage = () => {
         });
         console.log("Structure analysis complete:", structureAnalysis);
         setAnalysisProgress(prev => ({ ...prev, structure: true }));
+        setAnalysisData(prev => ({ ...prev, structureAnalysis, structureAnalysisMostChangedFiles: mostChangedFiles, structureAnalysisRepoStructure: repoStructure }));
+        updateSectionStatus("structure", { loading: false, error: null });
         
         toast({
           title: "Structure Analysis Complete",
@@ -173,25 +319,38 @@ const AnalysisPage = () => {
         
         // 6. Analyze code structure
         console.log("Analyzing code structure...");
+        updateSectionStatus("ast", { loading: true, error: null });
         let codeAnalysis = { dependencies: [], ast: {} };
         try {
           codeAnalysis = await codeAnalysisService.analyzeCode(fileContents);
           console.log("Code analysis complete:", codeAnalysis);
           setAnalysisProgress(prev => ({ ...prev, ast: true }));
+          setAnalysisData(prev => ({ ...prev, codeAnalysis }));
+          updateSectionStatus("ast", { loading: false, error: null });
         } catch (err) {
           console.error("Error in code analysis:", err);
+          updateSectionStatus("ast", { loading: false, error: err?.message || "Code analysis failed" });
         }
         
         // 7. Identify critical code paths
         console.log("Identifying critical code paths...");
-        const criticalPathsAnalysis = await geminiService.identifyCriticalCodePaths({
-          mostChangedFiles,
-          fileContents,
-          codeAnalysis,
-          role
-        });
-        console.log("Critical paths identified:", criticalPathsAnalysis);
-        setAnalysisProgress(prev => ({ ...prev, criticalPaths: true }));
+        updateSectionStatus("criticalPaths", { loading: true, error: null });
+        let criticalPathsAnalysis = null;
+        try {
+          criticalPathsAnalysis = await geminiService.identifyCriticalCodePaths({
+            mostChangedFiles,
+            fileContents,
+            codeAnalysis,
+            role
+          });
+          console.log("Critical paths identified:", criticalPathsAnalysis);
+          setAnalysisProgress(prev => ({ ...prev, criticalPaths: true }));
+          setAnalysisData(prev => ({ ...prev, criticalPathsAnalysis }));
+          updateSectionStatus("criticalPaths", { loading: false, error: null });
+        } catch (err) {
+          console.error("Error identifying critical paths:", err);
+          updateSectionStatus("criticalPaths", { loading: false, error: err?.message || "Critical paths analysis failed" });
+        }
         
         toast({
           title: "Critical Paths Identified",
@@ -200,12 +359,21 @@ const AnalysisPage = () => {
         
         // 8. Generate dependency graph
         console.log("Generating dependency graph...");
-        const dependencyGraphAnalysis = await geminiService.generateDependencyGraph({
-          codeAnalysis: codeAnalysis.dependencies,
-          repositoryStructure: repoStructure
-        });
-        console.log("Dependency graph generated:", dependencyGraphAnalysis);
-        setAnalysisProgress(prev => ({ ...prev, dependencies: true }));
+        updateSectionStatus("dependencies", { loading: true, error: null });
+        let dependencyGraphAnalysis = null;
+        try {
+          dependencyGraphAnalysis = await geminiService.generateDependencyGraph({
+            codeAnalysis: codeAnalysis.dependencies,
+            repositoryStructure: repoStructure
+          });
+          console.log("Dependency graph generated:", dependencyGraphAnalysis);
+          setAnalysisProgress(prev => ({ ...prev, dependencies: true }));
+          setAnalysisData(prev => ({ ...prev, dependencyGraphAnalysis }));
+          updateSectionStatus("dependencies", { loading: false, error: null });
+        } catch (err) {
+          console.error("Error generating dependency graph:", err);
+          updateSectionStatus("dependencies", { loading: false, error: err?.message || "Dependency graph generation failed" });
+        }
         
         toast({
           title: "Dependency Analysis Complete",
@@ -214,13 +382,22 @@ const AnalysisPage = () => {
         
         // 9. Create tutorials based on critical paths
         console.log("Creating tutorials...");
-        const tutorialsAnalysis = await geminiService.createTutorial({
-          criticalPaths: criticalPathsAnalysis.criticalPaths,
-          repositoryInfo: repoInfo,
-          role
-        });
-        console.log("Tutorials created:", tutorialsAnalysis);
-        setAnalysisProgress(prev => ({ ...prev, tutorials: true }));
+        updateSectionStatus("tutorials", { loading: true, error: null });
+        let tutorialsAnalysis = null;
+        try {
+          tutorialsAnalysis = await geminiService.createTutorial({
+            criticalPaths: criticalPathsAnalysis?.criticalPaths || [],
+            repositoryInfo: repoInfo,
+            role
+          });
+          console.log("Tutorials created:", tutorialsAnalysis);
+          setAnalysisProgress(prev => ({ ...prev, tutorials: true }));
+          setAnalysisData(prev => ({ ...prev, tutorialsAnalysis }));
+          updateSectionStatus("tutorials", { loading: false, error: null });
+        } catch (err) {
+          console.error("Error creating tutorials:", err);
+          updateSectionStatus("tutorials", { loading: false, error: err?.message || "Tutorial generation failed" });
+        }
         
         // Combine all analysis results
         const finalAnalysisData = {
@@ -266,7 +443,31 @@ const AnalysisPage = () => {
     if (repoUrl) {
       analyzeRepository();
     }
-  }, [repoUrl, role, toast]);
+  }, [repoUrl, role, toast, regenerateSection]);
+
+  // Helper UI for error status + regenerate
+  const errorBlock = (section: keyof typeof sectionStatus) => {
+    const status = sectionStatus[section];
+    if (status.error) {
+      return (
+        <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+          <p className="text-red-600 mb-2 text-center">
+            AI hit API limits or encountered an error for this section.<br />
+            <span className="text-xs">{status.error}</span>
+          </p>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => regenerateSection(section)}
+            disabled={status.loading}
+          >
+            {status.loading ? "Regenerating..." : "Regenerate"}
+          </Button>
+        </div>
+      );
+    }
+    return null;
+  };
   
   if (isLoading) {
     return <LoadingState repo={repoUrl} progress={analysisProgress} />;
@@ -338,52 +539,64 @@ const AnalysisPage = () => {
         
         <div className="mt-6">
           <TabsContent value="architecture">
-            {analysisData ? (
+            {errorBlock("structure")}
+            {analysisData && analysisData.structureAnalysis ? (
               <ArchitectureMap data={analysisData.structureAnalysis} />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
+              !sectionStatus.structure.error && (
+                <div className="space-y-4">
+                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                </div>
+              )
             )}
           </TabsContent>
           
           <TabsContent value="critical-paths">
-            {analysisData ? (
+            {errorBlock("criticalPaths")}
+            {analysisData && analysisData.criticalPathsAnalysis ? (
               <CriticalPathsView 
                 data={analysisData.criticalPathsAnalysis} 
                 role={role} 
               />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
+              !sectionStatus.criticalPaths.error && (
+                <div className="space-y-4">
+                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                </div>
+              )
             )}
           </TabsContent>
           
           <TabsContent value="dependencies">
-            {analysisData ? (
+            {errorBlock("dependencies")}
+            {analysisData && analysisData.dependencyGraphAnalysis ? (
               <DependencyGraph 
                 data={analysisData.dependencyGraphAnalysis} 
                 codeAnalysis={analysisData.codeAnalysis} 
               />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
+              !sectionStatus.dependencies.error && (
+                <div className="space-y-4">
+                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                </div>
+              )
             )}
           </TabsContent>
 
           <TabsContent value="ast">
+            {errorBlock("ast")}
             {analysisData && analysisData.codeAnalysis ? (
               <ASTViewer ast={analysisData.codeAnalysis.ast} />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
+              !sectionStatus.ast.error && (
+                <div className="space-y-4">
+                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                </div>
+              )
             )}
           </TabsContent>
           
@@ -421,16 +634,19 @@ const AnalysisPage = () => {
           </TabsContent>
           
           <TabsContent value="tutorials">
-            {analysisData ? (
+            {errorBlock("tutorials")}
+            {analysisData && analysisData.tutorialsAnalysis ? (
               <TutorialView 
                 data={analysisData.tutorialsAnalysis} 
                 role={role} 
               />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-              </div>
+              !sectionStatus.tutorials.error && (
+                <div className="space-y-4">
+                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                </div>
+              )
             )}
           </TabsContent>
         </div>
