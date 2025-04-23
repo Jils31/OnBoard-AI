@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle, FileCode, GitBranch, GitPullRequest } from "lucide-react";
-import { githubService } from "@/services/GitHubService";
+import { githubService, GitHubService } from "@/services/GitHubService";
 import { geminiService } from "@/services/GeminiService";
 import { codeAnalysisService } from "@/services/CodeAnalysisService";
 import ArchitectureMap from "@/components/analysis/ArchitectureMap";
@@ -66,7 +66,7 @@ const AnalysisPage = () => {
           // Get GitHub token for private repo access
           const githubToken = await RepositoryAnalysisService.getGitHubToken();
           const githubServiceWithToken = githubToken ? 
-            GitHubService.withToken(githubToken) : 
+            new GitHubService(githubToken) : 
             githubService;
           
           // Parse repository URL
@@ -119,7 +119,7 @@ const AnalysisPage = () => {
         // Get GitHub token for private repo access
         const githubToken = await RepositoryAnalysisService.getGitHubToken();
         const githubServiceWithToken = githubToken ? 
-          GitHubService.withToken(githubToken) : 
+          new GitHubService(githubToken) : 
           githubService;
         
         // 1. Get repository information
