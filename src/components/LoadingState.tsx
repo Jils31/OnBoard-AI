@@ -18,13 +18,13 @@ const LoadingState = ({ repo, progress, isStoredAnalysis = false }: LoadingState
   const [progressValue, setProgressValue] = useState(0);
   
   useEffect(() => {
-    // If this is a stored analysis, set progress to 100% immediately
+    // For stored analysis, we want to immediately show 100%
     if (isStoredAnalysis) {
       setProgressValue(100);
       return;
     }
     
-    // Calculate progress percentage based on completed steps
+    // For new analysis, calculate progress based on completed steps
     const completedSteps = Object.values(progress).filter(Boolean).length;
     const totalSteps = Object.values(progress).length;
     const newProgress = Math.floor((completedSteps / totalSteps) * 100);

@@ -192,13 +192,21 @@ const AnalysisPage = () => {
         console.log("Starting repository analysis for:", repoUrl);
         console.log("Source:", source);
 
+        // If coming from history, we know we have a stored analysis to load
+        const isFromHistory = source === "history";
+        setLoadingStoredAnalysis(isFromHistory);
+
         // First, try to fetch stored analysis from database
+        let storedAnalysis = null;
+        let shouldPerformNewAnalysis = true;
+        
         try {
-          const storedAnalysis = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
+          storedAnalysis = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
           
           // If we have stored analysis data, use it
           if (storedAnalysis && storedAnalysis.analysis_data) {
             console.log('Using stored analysis data');
+            shouldPerformNewAnalysis = false;
             
             // Get GitHub token for private repo access
             const githubToken = await RepositoryAnalysisService.getGitHubToken();
@@ -235,12 +243,17 @@ const AnalysisPage = () => {
               
               setLoadingStoredAnalysis(false);
               setIsLoading(false);
-              return;
             }
           }
         } catch (fetchError) {
           console.error("Error fetching stored analysis:", fetchError);
           // Continue with new analysis if stored analysis cannot be retrieved
+          shouldPerformNewAnalysis = true;
+        }
+        
+        // If we loaded the stored analysis successfully, we're done
+        if (!shouldPerformNewAnalysis) {
+          return;
         }
         
         setLoadingStoredAnalysis(false);

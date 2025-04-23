@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,7 +140,8 @@ const History = () => {
   };
   
   const handleViewAnalysis = (repoUrl: string) => {
-    navigate(`/analysis?repo=${encodeURIComponent(repoUrl)}&t=${Date.now()}&source=history`);
+    // Use a clearer source parameter and ensure we're not causing repeated analysis
+    navigate(`/analysis?repo=${encodeURIComponent(repoUrl)}&source=history`);
   };
 
   return (

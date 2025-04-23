@@ -69,7 +69,7 @@ export class RepositoryAnalysisService {
 
     return { 
       owner: match[1], 
-      repo: match[2] 
+      repo: match[2].replace(/\/$/, '').split('?')[0] // Clean repo name by removing trailing slash and query params
     };
   }
 
