@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
+import { GitHubService } from '@/services/GitHubService';
 
 export class RepositoryAnalysisService {
   static async saveRepositoryAnalysis(
@@ -47,5 +48,21 @@ export class RepositoryAnalysisService {
       owner: match[1], 
       repo: match[2] 
     };
+  }
+
+  static async getGitHubToken() {
+    // First try to get token from session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.provider_token) {
+      return session.provider_token;
+    }
+    
+    // Then try to get stored token from localStorage
+    const storedToken = localStorage.getItem('github_token');
+    if (storedToken) {
+      return storedToken;
+    }
+    
+    return null;
   }
 }

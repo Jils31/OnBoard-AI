@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Search, GitBranch, Calendar, ExternalLink } from "lucide-react";
+import { Search, GitBranch, Calendar, ExternalLink, ShieldAlert, Lock } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
+import { GitHubService } from "@/services/GitHubService";
 
 interface AnalyzedRepo {
   id: string;
@@ -14,14 +17,26 @@ interface AnalyzedRepo {
   repository_owner: string;
   repository_url: string;
   last_analyzed_at: string;
+  is_private?: boolean;
+  has_access?: boolean;
 }
 
 const History = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [repositories, setRepositories] = useState<AnalyzedRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchGitHubToken = async () => {
+      const token = await RepositoryAnalysisService.getGitHubToken();
+      setGithubToken(token);
+    };
+    
+    fetchGitHubToken();
+  }, [session]);
   
   useEffect(() => {
     const fetchAnalyzedRepositories = async () => {
@@ -36,16 +51,46 @@ const History = () => {
           
         if (error) throw error;
         
-        setRepositories(data || []);
+        // Check repository access for each repo
+        const reposWithAccessInfo = await Promise.all((data || []).map(async (repo) => {
+          // Default to public access
+          let hasAccess = true;
+          let isPrivate = false;
+          
+          try {
+            if (githubToken) {
+              const githubService = GitHubService.withToken(githubToken);
+              const { owner, repo: repoName } = RepositoryAnalysisService.parseRepoUrl(repo.repository_url);
+              const repoInfo = await githubService.getRepositoryInfo(owner, repoName);
+              isPrivate = repoInfo.private;
+            }
+          } catch (err) {
+            console.error(`Error checking repository access for ${repo.repository_url}:`, err);
+            hasAccess = false;
+          }
+          
+          return {
+            ...repo,
+            is_private: isPrivate,
+            has_access: hasAccess
+          };
+        }));
+        
+        setRepositories(reposWithAccessInfo);
       } catch (error) {
         console.error('Error fetching analyzed repositories:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch repository history",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchAnalyzedRepositories();
-  }, [user]);
+  }, [user, githubToken]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
@@ -66,6 +111,34 @@ const History = () => {
     );
   });
 
+  const handleConnectGitHub = async () => {
+    try {
+      const redirectUrl = new URL('/auth/callback', window.location.origin).toString();
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          scopes: 'repo read:user user:email',
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "GitHub Connection Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to GitHub. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -76,14 +149,27 @@ const History = () => {
           </p>
         </div>
         
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <Input 
-            placeholder="Search repositories..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          {!githubToken && (
+            <Button 
+              variant="outline" 
+              onClick={handleConnectGitHub}
+              className="whitespace-nowrap"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Connect GitHub for Private Repos
+            </Button>
+          )}
+          
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input 
+              placeholder="Search repositories..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </div>
       </div>
       
@@ -130,6 +216,9 @@ const History = () => {
                         <div className="flex items-center">
                           <GitBranch className="h-4 w-4 mr-2 text-gray-500" />
                           <span className="font-medium">{repo.repository_name}</span>
+                          {repo.is_private && (
+                            <span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">Private</span>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-4 hidden md:table-cell text-gray-600 dark:text-gray-300">
@@ -151,12 +240,23 @@ const History = () => {
                             <ExternalLink className="h-4 w-4 mr-1" />
                             Source
                           </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => navigate(`/analysis?repo=${encodeURIComponent(repo.repository_url)}&t=${Date.now()}`)}
-                          >
-                            View Analysis
-                          </Button>
+                          {repo.has_access === false ? (
+                            <Button 
+                              size="sm"
+                              variant="destructive"
+                              onClick={handleConnectGitHub}
+                            >
+                              <ShieldAlert className="h-4 w-4 mr-1" />
+                              Connect GitHub
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm"
+                              onClick={() => navigate(`/analysis?repo=${encodeURIComponent(repo.repository_url)}&t=${Date.now()}`)}
+                            >
+                              View Analysis
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
