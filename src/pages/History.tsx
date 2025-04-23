@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,6 +137,10 @@ const History = () => {
       });
     }
   };
+  
+  const handleViewAnalysis = (repoUrl: string) => {
+    navigate(`/analysis?repo=${encodeURIComponent(repoUrl)}&t=${Date.now()}&source=history`);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -252,7 +255,7 @@ const History = () => {
                           ) : (
                             <Button 
                               size="sm"
-                              onClick={() => navigate(`/analysis?repo=${encodeURIComponent(repo.repository_url)}&t=${Date.now()}`)}
+                              onClick={() => handleViewAnalysis(repo.repository_url)}
                             >
                               View Analysis
                             </Button>

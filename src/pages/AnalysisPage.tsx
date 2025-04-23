@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, FileCode, GitBranch, GitPullRequest } from "lucide-react";
+import { AlertCircle, CheckCircle, FileCode, GitBranch, GitPullRequest, RefreshCw } from "lucide-react";
 import { githubService, GitHubService } from "@/services/GitHubService";
 import { geminiService } from "@/services/GeminiService";
 import { codeAnalysisService } from "@/services/CodeAnalysisService";
@@ -23,9 +23,11 @@ const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
   const repoUrl = searchParams.get("repo") || "";
   const role = searchParams.get("role") || "full-stack";
+  const source = searchParams.get("source") || "";
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingStoredAnalysis, setLoadingStoredAnalysis] = useState(source === "history");
   const [error, setError] = useState<string | null>(null);
   const [repoInfo, setRepoInfo] = useState<any>(null);
   const [analysisProgress, setAnalysisProgress] = useState({
@@ -188,61 +190,60 @@ const AnalysisPage = () => {
         setAnalysisData(null); // Reset any previous analysis data
         
         console.log("Starting repository analysis for:", repoUrl);
+        console.log("Source:", source);
 
         // First, try to fetch stored analysis from database
-        const { data: storedAnalysis, error: fetchError } = await supabase
-          .from('analyzed_repositories')
-          .select('*')
-          .eq('repository_url', repoUrl)
-          .order('last_analyzed_at', { ascending: false })
-          .limit(1);
-
-        if (fetchError) {
-          console.error('Error fetching stored analysis:', fetchError);
-        }
-
-        // If we have stored analysis data, use it
-        if (storedAnalysis && storedAnalysis.length > 0 && storedAnalysis[0].analysis_data) {
-          console.log('Using stored analysis data');
-          const analysisFromDb = storedAnalysis[0].analysis_data;
+        try {
+          const storedAnalysis = await RepositoryAnalysisService.getRepositoryAnalysis(repoUrl);
           
-          // Get GitHub token for private repo access
-          const githubToken = await RepositoryAnalysisService.getGitHubToken();
-          const githubServiceWithToken = githubToken ? 
-            new GitHubService(githubToken) : 
-            githubService;
-          
-          // Parse repository URL
-          const parsedRepo = githubService.parseRepoUrl(repoUrl);
-          if (!parsedRepo) {
-            throw new Error("Invalid repository URL");
-          }
-          
-          const { owner, repo } = parsedRepo;
-          console.log(`Parsed repo: ${owner}/${repo}`);
-          
-          // Get repository information using authenticated GitHub service
-          console.log("Fetching repository information...");
-          const repoInfo = await githubServiceWithToken.getRepositoryInfo(owner, repo);
-          setRepoInfo(repoInfo);
-          
-          // Set analysis data from database
-          if (typeof analysisFromDb === 'object') {
-            setAnalysisData(analysisFromDb);
+          // If we have stored analysis data, use it
+          if (storedAnalysis && storedAnalysis.analysis_data) {
+            console.log('Using stored analysis data');
             
-            // Set progress indicators to complete
-            setAnalysisProgress({
-              structure: true,
-              criticalPaths: true,
-              dependencies: true,
-              tutorials: true,
-              ast: true
-            });
+            // Get GitHub token for private repo access
+            const githubToken = await RepositoryAnalysisService.getGitHubToken();
+            const githubServiceWithToken = githubToken ? 
+              new GitHubService(githubToken) : 
+              githubService;
             
-            setIsLoading(false);
-            return;
+            // Parse repository URL
+            const parsedRepo = githubService.parseRepoUrl(repoUrl);
+            if (!parsedRepo) {
+              throw new Error("Invalid repository URL");
+            }
+            
+            const { owner, repo } = parsedRepo;
+            console.log(`Parsed repo: ${owner}/${repo}`);
+            
+            // Get repository information using authenticated GitHub service
+            console.log("Fetching repository information...");
+            const repoInfo = await githubServiceWithToken.getRepositoryInfo(owner, repo);
+            setRepoInfo(repoInfo);
+            
+            // Set analysis data from database
+            if (typeof storedAnalysis.analysis_data === 'object') {
+              setAnalysisData(storedAnalysis.analysis_data);
+              
+              // Set progress indicators to complete
+              setAnalysisProgress({
+                structure: true,
+                criticalPaths: true,
+                dependencies: true,
+                tutorials: true,
+                ast: true
+              });
+              
+              setLoadingStoredAnalysis(false);
+              setIsLoading(false);
+              return;
+            }
           }
+        } catch (fetchError) {
+          console.error("Error fetching stored analysis:", fetchError);
+          // Continue with new analysis if stored analysis cannot be retrieved
         }
+        
+        setLoadingStoredAnalysis(false);
         
         // Otherwise perform a new analysis
         // Parse repository URL
@@ -431,6 +432,7 @@ const AnalysisPage = () => {
         console.error("Error analyzing repository:", error);
         setError(error instanceof Error ? error.message : "Unknown error occurred");
         setIsLoading(false);
+        setLoadingStoredAnalysis(false);
         
         toast({
           title: "Analysis Error",
@@ -443,7 +445,7 @@ const AnalysisPage = () => {
     if (repoUrl) {
       analyzeRepository();
     }
-  }, [repoUrl, role, toast, regenerateSection]);
+  }, [repoUrl, role, toast, regenerateSection, source]);
 
   // Helper UI for error status + regenerate
   const errorBlock = (section: keyof typeof sectionStatus) => {
@@ -452,7 +454,7 @@ const AnalysisPage = () => {
       return (
         <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
           <p className="text-red-600 mb-2 text-center">
-            AI hit API limits or encountered an error for this section.<br />
+            <strong>AI API Limit Hit</strong><br/>
             <span className="text-xs">{status.error}</span>
           </p>
           <Button 
@@ -461,7 +463,9 @@ const AnalysisPage = () => {
             onClick={() => regenerateSection(section)}
             disabled={status.loading}
           >
-            {status.loading ? "Regenerating..." : "Regenerate"}
+            {status.loading ? "Regenerating..." : (
+              <><RefreshCw className="h-4 w-4 mr-1" /> Regenerate</>
+            )}
           </Button>
         </div>
       );
@@ -470,7 +474,7 @@ const AnalysisPage = () => {
   };
   
   if (isLoading) {
-    return <LoadingState repo={repoUrl} progress={analysisProgress} />;
+    return <LoadingState repo={repoUrl} progress={analysisProgress} isStoredAnalysis={loadingStoredAnalysis} />;
   }
   
   if (error) {
@@ -544,9 +548,21 @@ const AnalysisPage = () => {
               <ArchitectureMap data={analysisData.structureAnalysis} />
             ) : (
               !sectionStatus.structure.error && (
-                <div className="space-y-4">
-                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                  <p className="text-amber-600 mb-2 text-center">
+                    <strong>AI API Limit Hit</strong><br/>
+                    <span className="text-xs">The AI API limit was reached while generating architecture analysis</span>
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSection("structure")}
+                    disabled={sectionStatus.structure.loading}
+                  >
+                    {sectionStatus.structure.loading ? "Generating..." : (
+                      <><RefreshCw className="h-4 w-4 mr-1" /> Generate Architecture Analysis</>
+                    )}
+                  </Button>
                 </div>
               )
             )}
@@ -561,9 +577,21 @@ const AnalysisPage = () => {
               />
             ) : (
               !sectionStatus.criticalPaths.error && (
-                <div className="space-y-4">
-                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                  <p className="text-amber-600 mb-2 text-center">
+                    <strong>AI API Limit Hit</strong><br/>
+                    <span className="text-xs">The AI API limit was reached while generating critical paths analysis</span>
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSection("criticalPaths")}
+                    disabled={sectionStatus.criticalPaths.loading}
+                  >
+                    {sectionStatus.criticalPaths.loading ? "Generating..." : (
+                      <><RefreshCw className="h-4 w-4 mr-1" /> Generate Critical Paths</>
+                    )}
+                  </Button>
                 </div>
               )
             )}
@@ -578,9 +606,21 @@ const AnalysisPage = () => {
               />
             ) : (
               !sectionStatus.dependencies.error && (
-                <div className="space-y-4">
-                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                  <p className="text-amber-600 mb-2 text-center">
+                    <strong>AI API Limit Hit</strong><br/>
+                    <span className="text-xs">The AI API limit was reached while generating dependency graph</span>
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSection("dependencies")}
+                    disabled={sectionStatus.dependencies.loading}
+                  >
+                    {sectionStatus.dependencies.loading ? "Generating..." : (
+                      <><RefreshCw className="h-4 w-4 mr-1" /> Generate Dependency Graph</>
+                    )}
+                  </Button>
                 </div>
               )
             )}
@@ -592,9 +632,21 @@ const AnalysisPage = () => {
               <ASTViewer ast={analysisData.codeAnalysis.ast} />
             ) : (
               !sectionStatus.ast.error && (
-                <div className="space-y-4">
-                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                  <p className="text-amber-600 mb-2 text-center">
+                    <strong>AI API Limit Hit</strong><br/>
+                    <span className="text-xs">The AI API limit was reached while generating AST analysis</span>
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSection("ast")}
+                    disabled={sectionStatus.ast.loading}
+                  >
+                    {sectionStatus.ast.loading ? "Generating..." : (
+                      <><RefreshCw className="h-4 w-4 mr-1" /> Generate AST Analysis</>
+                    )}
+                  </Button>
                 </div>
               )
             )}
@@ -611,9 +663,18 @@ const AnalysisPage = () => {
                 repositoryName={repoInfo.name}
               />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                <p className="text-amber-600 mb-2 text-center">
+                  <strong>Missing Analysis Data</strong><br/>
+                  <span className="text-xs">The analysis data is required to use the chat feature</span>
+                </p>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> Reload Analysis
+                </Button>
               </div>
             )}
           </TabsContent>
@@ -626,9 +687,18 @@ const AnalysisPage = () => {
                 criticalPaths={analysisData.criticalPathsAnalysis?.criticalPaths}
               />
             ) : (
-              <div className="space-y-4">
-                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                <p className="text-amber-600 mb-2 text-center">
+                  <strong>Missing Analysis Data</strong><br/>
+                  <span className="text-xs">The analysis data is required to generate documentation</span>
+                </p>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> Reload Analysis
+                </Button>
               </div>
             )}
           </TabsContent>
@@ -642,9 +712,21 @@ const AnalysisPage = () => {
               />
             ) : (
               !sectionStatus.tutorials.error && (
-                <div className="space-y-4">
-                  <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
-                  <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="flex flex-col items-center p-4 border rounded bg-muted my-2">
+                  <p className="text-amber-600 mb-2 text-center">
+                    <strong>AI API Limit Hit</strong><br/>
+                    <span className="text-xs">The AI API limit was reached while generating tutorials</span>
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSection("tutorials")}
+                    disabled={sectionStatus.tutorials.loading}
+                  >
+                    {sectionStatus.tutorials.loading ? "Generating..." : (
+                      <><RefreshCw className="h-4 w-4 mr-1" /> Generate Tutorials</>
+                    )}
+                  </Button>
                 </div>
               )
             )}

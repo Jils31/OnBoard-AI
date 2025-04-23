@@ -36,6 +36,29 @@ export class RepositoryAnalysisService {
     return data;
   }
 
+  static async getRepositoryAnalysis(repositoryUrl: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data, error } = await supabase
+      .from('analyzed_repositories')
+      .select('*')
+      .eq('repository_url', repositoryUrl)
+      .eq('user_id', user.id)
+      .order('last_analyzed_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Repository analysis fetch error:', error);
+      throw error;
+    }
+
+    return data && data.length > 0 ? data[0] : null;
+  }
+
   static parseRepoUrl(url: string): { owner: string; repo: string } {
     const githubRegex = /https:\/\/github\.com\/([^\/]+)\/([^\/]+)/;
     const match = url.match(githubRegex);
