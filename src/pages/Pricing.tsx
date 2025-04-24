@@ -17,7 +17,7 @@ const plans = [
     price: "$0",
     period: "forever",
     features: [
-      "1 repository analysis per month",
+      "2 repository analyses per month",
       "Basic code structure visualization",
       "Limited documentation generation",
       "Community support"
