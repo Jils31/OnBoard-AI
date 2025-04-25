@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useCallback } from 'react';
-import { SendIcon, Loader2, Code, FileText, Folder } from 'lucide-react';
+import React, { useState } from 'react';
+import { SendIcon, Loader2, Code } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,6 @@ import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 
 interface CodebaseChatViewProps {
   codebaseData: any;
@@ -24,202 +22,17 @@ interface Message {
   timestamp: Date;
 }
 
-interface FileSuggestion {
-  path: string;
-  type: 'file' | 'folder';
-  displayName: string;
-}
-
 const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repositoryName }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: `Hi there! I'm your AI assistant for the ${repositoryName || 'repository'}. Ask me anything about this codebase and I'll help you understand it better. You can @mention files or folders like @filename.js to ask specific questions about them.`,
+      text: `Hi there! I'm your AI assistant for the ${repositoryName || 'repository'}. Ask me anything about this codebase and I'll help you understand it better.`,
       isUser: false,
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [mentionOpen, setMentionOpen] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
-  const [cursorPosition, setCursorPosition] = useState(0);
-  const [fileSuggestions, setFileSuggestions] = useState<FileSuggestion[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  // Extract files and directories from codebase data
-  const extractFilePaths = useCallback((): FileSuggestion[] => {
-    const results: FileSuggestion[] = [];
-    
-    // Helper function to extract files from critical paths
-    const extractFromCriticalPaths = (paths: any) => {
-      if (!paths) return;
-      
-      // If it's an array of paths
-      if (Array.isArray(paths)) {
-        paths.forEach(path => {
-          if (typeof path === 'string') {
-            results.push({
-              path,
-              type: 'file',
-              displayName: path.split('/').pop() || path
-            });
-          } else if (path && typeof path === 'object') {
-            // Extract from path objects that may have 'path' or 'file' properties
-            const filePath = path.path || path.file;
-            if (filePath && typeof filePath === 'string') {
-              results.push({
-                path: filePath,
-                type: 'file',
-                displayName: filePath.split('/').pop() || filePath
-              });
-            }
-            
-            // Look for nested files or directories
-            if (path.files && Array.isArray(path.files)) {
-              extractFromCriticalPaths(path.files);
-            }
-            if (path.directories && Array.isArray(path.directories)) {
-              path.directories.forEach((dir: any) => {
-                if (typeof dir === 'string') {
-                  results.push({
-                    path: dir,
-                    type: 'folder',
-                    displayName: dir.split('/').pop() || dir
-                  });
-                } else if (dir && dir.path) {
-                  results.push({
-                    path: dir.path,
-                    type: 'folder',
-                    displayName: dir.path.split('/').pop() || dir.path
-                  });
-                }
-              });
-            }
-          }
-        });
-      }
-    };
-
-    // Extract from various sources in codebase data
-    if (codebaseData) {
-      // From critical paths
-      if (codebaseData.criticalPaths) {
-        extractFromCriticalPaths(codebaseData.criticalPaths);
-      }
-      
-      // From code analysis if available
-      if (codebaseData.codeAnalysis) {
-        // Extract from dependencies
-        if (codebaseData.codeAnalysis.dependencies && Array.isArray(codebaseData.codeAnalysis.dependencies)) {
-          codebaseData.codeAnalysis.dependencies.forEach((dep: any) => {
-            if (dep.source) {
-              results.push({
-                path: dep.source,
-                type: 'file',
-                displayName: dep.source.split('/').pop() || dep.source
-              });
-            }
-            if (dep.target) {
-              results.push({
-                path: dep.target,
-                type: 'file',
-                displayName: dep.target.split('/').pop() || dep.target
-              });
-            }
-          });
-        }
-        
-        // Extract from AST if available
-        if (codebaseData.codeAnalysis.ast) {
-          Object.keys(codebaseData.codeAnalysis.ast).forEach(filePath => {
-            results.push({
-              path: filePath,
-              type: 'file',
-              displayName: filePath.split('/').pop() || filePath
-            });
-          });
-        }
-      }
-    }
-    
-    // Remove duplicates based on path
-    const uniqueResults = Array.from(
-      new Map(results.map(item => [item.path, item])).values()
-    );
-    
-    return uniqueResults;
-  }, [codebaseData]);
-
-  const checkForMention = useCallback((text: string, position: number) => {
-    // Find the @ symbol before the cursor
-    let startPos = position;
-    while (startPos > 0 && text[startPos - 1] !== '@' && text[startPos - 1] !== ' ') {
-      startPos--;
-    }
-    
-    // Check if we found an @ symbol
-    if (startPos > 0 && text[startPos - 1] === '@') {
-      const mentionText = text.substring(startPos, position);
-      return { found: true, text: mentionText, startPos: startPos - 1 };
-    }
-    
-    return { found: false, text: '', startPos: -1 };
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    const cursorPos = e.target.selectionStart || 0;
-    
-    setInputValue(newValue);
-    setCursorPosition(cursorPos);
-    
-    // Check for @ mention
-    const mention = checkForMention(newValue, cursorPos);
-    if (mention.found) {
-      setMentionQuery(mention.text);
-      
-      // Filter file suggestions based on mention query
-      const allFiles = extractFilePaths();
-      const filtered = allFiles.filter(file => 
-        file.displayName.toLowerCase().includes(mention.text.toLowerCase())
-      );
-      
-      setFileSuggestions(filtered);
-      
-      if (filtered.length > 0) {
-        setMentionOpen(true);
-      } else {
-        setMentionOpen(false);
-      }
-    } else {
-      setMentionOpen(false);
-    }
-  };
-
-  const handleSelectFile = (file: FileSuggestion) => {
-    // Find the @ symbol before the cursor
-    const mention = checkForMention(inputValue, cursorPosition);
-    if (mention.found) {
-      // Replace the @mention with the selected file
-      const before = inputValue.substring(0, mention.startPos);
-      const after = inputValue.substring(cursorPosition);
-      const newValue = `${before}@${file.path}${after}`;
-      
-      setInputValue(newValue);
-      setMentionOpen(false);
-      
-      // Focus back on input and set cursor position after the inserted filename
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          const newCursorPos = mention.startPos + file.path.length + 1; // +1 for the @ symbol
-          inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
-          setCursorPosition(newCursorPos);
-        }
-      }, 0);
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -337,7 +150,7 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repos
         <CardHeader>
           <CardTitle>Codebase Assistant</CardTitle>
           <CardDescription>
-            Ask questions about the codebase to better understand it. You can @mention files or folders.
+            Ask questions about the codebase to better understand it
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col">
@@ -381,55 +194,17 @@ const CodebaseChatView: React.FC<CodebaseChatViewProps> = ({ codebaseData, repos
             </div>
           </ScrollArea>
           
-          <div className="flex gap-2 mt-4 relative">
-            <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
-              <PopoverTrigger asChild>
-                <Input
-                  ref={inputRef}
-                  placeholder="Ask a question about the codebase... or @mention a file"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !mentionOpen) handleSendMessage();
-                    if (e.key === 'Escape') setMentionOpen(false);
-                  }}
-                  disabled={isLoading}
-                  className="flex-grow"
-                />
-              </PopoverTrigger>
-              <PopoverContent 
-                className="p-0 w-[300px]" 
-                side="top" 
-                align="start" 
-                alignOffset={60}
-              >
-                {fileSuggestions.length > 0 && (
-                  <Command>
-                    <CommandList>
-                      <CommandGroup heading="Files and folders">
-                        {fileSuggestions.slice(0, 8).map((file) => (
-                          <CommandItem
-                            key={file.path}
-                            onSelect={() => handleSelectFile(file)}
-                            className="flex items-center"
-                          >
-                            {file.type === 'file' ? (
-                              <FileText className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Folder className="mr-2 h-4 w-4" />
-                            )}
-                            <span className="truncate">{file.displayName}</span>
-                            <span className="ml-auto text-xs text-muted-foreground truncate">
-                              {file.path}
-                            </span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                )}
-              </PopoverContent>
-            </Popover>
+          <div className="flex gap-2 mt-4">
+            <Input
+              placeholder="Ask a question about the codebase..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSendMessage();
+              }}
+              disabled={isLoading}
+              className="flex-grow"
+            />
             <Button 
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}

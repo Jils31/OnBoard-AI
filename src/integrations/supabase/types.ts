@@ -12,7 +12,6 @@ export type Database = {
       analyzed_repositories: {
         Row: {
           analysis_data: Json | null
-          chat_history: Json | null
           created_at: string
           id: string
           last_analyzed_at: string
@@ -24,7 +23,6 @@ export type Database = {
         }
         Insert: {
           analysis_data?: Json | null
-          chat_history?: Json | null
           created_at?: string
           id?: string
           last_analyzed_at?: string
@@ -36,7 +34,6 @@ export type Database = {
         }
         Update: {
           analysis_data?: Json | null
-          chat_history?: Json | null
           created_at?: string
           id?: string
           last_analyzed_at?: string

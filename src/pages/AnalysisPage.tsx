@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle, FileCode, GitBranch, GitPullRequest } from "lucide-react";
-import { githubService, GitHubService } from "@/services/GitHubService";
+import { githubService } from "@/services/GitHubService";
 import { geminiService } from "@/services/GeminiService";
 import { codeAnalysisService } from "@/services/CodeAnalysisService";
 import ArchitectureMap from "@/components/analysis/ArchitectureMap";
@@ -16,8 +17,6 @@ import CodebaseChatView from "@/components/analysis/CodebaseChatView";
 import DocumentationView from "@/components/analysis/DocumentationView";
 import LoadingState from "@/components/LoadingState";
 import { useToast } from "@/hooks/use-toast";
-import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
-import { supabase } from "@/integrations/supabase/client";
 
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
@@ -45,63 +44,7 @@ const AnalysisPage = () => {
         setAnalysisData(null); // Reset any previous analysis data
         
         console.log("Starting repository analysis for:", repoUrl);
-
-        // First, try to fetch stored analysis from database
-        const { data: storedAnalysis, error: fetchError } = await supabase
-          .from('analyzed_repositories')
-          .select('*')
-          .eq('repository_url', repoUrl)
-          .order('last_analyzed_at', { ascending: false })
-          .limit(1);
-
-        if (fetchError) {
-          console.error('Error fetching stored analysis:', fetchError);
-        }
-
-        // If we have stored analysis data, use it
-        if (storedAnalysis && storedAnalysis.length > 0 && storedAnalysis[0].analysis_data) {
-          console.log('Using stored analysis data');
-          const analysisFromDb = storedAnalysis[0].analysis_data;
-          
-          // Get GitHub token for private repo access
-          const githubToken = await RepositoryAnalysisService.getGitHubToken();
-          const githubServiceWithToken = githubToken ? 
-            new GitHubService(githubToken) : 
-            githubService;
-          
-          // Parse repository URL
-          const parsedRepo = githubService.parseRepoUrl(repoUrl);
-          if (!parsedRepo) {
-            throw new Error("Invalid repository URL");
-          }
-          
-          const { owner, repo } = parsedRepo;
-          console.log(`Parsed repo: ${owner}/${repo}`);
-          
-          // Get repository information using authenticated GitHub service
-          console.log("Fetching repository information...");
-          const repoInfo = await githubServiceWithToken.getRepositoryInfo(owner, repo);
-          setRepoInfo(repoInfo);
-          
-          // Set analysis data from database
-          if (typeof analysisFromDb === 'object') {
-            setAnalysisData(analysisFromDb);
-            
-            // Set progress indicators to complete
-            setAnalysisProgress({
-              structure: true,
-              criticalPaths: true,
-              dependencies: true,
-              tutorials: true,
-              ast: true
-            });
-            
-            setIsLoading(false);
-            return;
-          }
-        }
         
-        // Otherwise perform a new analysis
         // Parse repository URL
         const parsedRepo = githubService.parseRepoUrl(repoUrl);
         if (!parsedRepo) {
@@ -115,27 +58,21 @@ const AnalysisPage = () => {
           title: "Analysis Started",
           description: `Analyzing ${owner}/${repo}...`
         });
-
-        // Get GitHub token for private repo access
-        const githubToken = await RepositoryAnalysisService.getGitHubToken();
-        const githubServiceWithToken = githubToken ? 
-          new GitHubService(githubToken) : 
-          githubService;
         
         // 1. Get repository information
         console.log("Fetching repository information...");
-        const repoInfo = await githubServiceWithToken.getRepositoryInfo(owner, repo);
+        const repoInfo = await githubService.getRepositoryInfo(owner, repo);
         setRepoInfo(repoInfo);
         console.log("Repository info fetched:", repoInfo.name);
         
         // 2. Get repository structure
         console.log("Fetching repository structure...");
-        const repoStructure = await githubServiceWithToken.getRepositoryStructure(owner, repo);
+        const repoStructure = await githubService.getRepositoryStructure(owner, repo);
         console.log("Repository structure fetched", repoStructure);
         
         // 3. Get most changed files
         console.log("Fetching most changed files...");
-        const mostChangedFiles = await githubServiceWithToken.getMostChangedFiles(owner, repo, 10);
+        const mostChangedFiles = await githubService.getMostChangedFiles(owner, repo, 10);
         console.log("Most changed files fetched:", mostChangedFiles);
         
         // 4. Analyze repository structure
@@ -159,7 +96,7 @@ const AnalysisPage = () => {
         for (const file of mostChangedFiles.slice(0, 5)) {
           try {
             console.log(`Fetching content for ${file.filename}...`);
-            const content = await githubServiceWithToken.getFileContent(owner, repo, file.filename);
+            const content = await githubService.getFileContent(owner, repo, file.filename);
             fileContents.push({
               path: file.filename,
               content,
@@ -233,15 +170,6 @@ const AnalysisPage = () => {
         
         console.log("Setting final analysis data:", finalAnalysisData);
         setAnalysisData(finalAnalysisData);
-        
-        // Save analysis to database
-        try {
-          await RepositoryAnalysisService.saveRepositoryAnalysis(repoUrl, finalAnalysisData);
-          console.log("Analysis saved to database");
-        } catch (saveError) {
-          console.error("Error saving analysis:", saveError);
-          // Continue even if saving fails
-        }
         
         toast({
           title: "Analysis Complete",
@@ -393,7 +321,7 @@ const AnalysisPage = () => {
                 codebaseData={{
                   repositoryInfo: repoInfo,
                   codeAnalysis: analysisData.codeAnalysis,
-                  criticalPaths: analysisData.criticalPathsAnalysis?.criticalPaths
+                  criticalPaths: analysisData.criticalPathsAnalysis.criticalPaths
                 }}
                 repositoryName={repoInfo.name}
               />
@@ -410,7 +338,7 @@ const AnalysisPage = () => {
               <DocumentationView 
                 repositoryInfo={repoInfo}
                 codeAnalysis={analysisData.codeAnalysis}
-                criticalPaths={analysisData.criticalPathsAnalysis?.criticalPaths}
+                criticalPaths={analysisData.criticalPathsAnalysis.criticalPaths}
               />
             ) : (
               <div className="space-y-4">
