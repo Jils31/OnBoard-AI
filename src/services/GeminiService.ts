@@ -2,11 +2,30 @@
  * Service for interacting with Google's Gemini API
  */
 export class GeminiService {
-  private apiKey: string;
+  private apiKeys: string[];
+  private currentKeyIndex: number = 0;
   private baseUrl = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent';
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(apiKey: string, additionalApiKeys: string[] = []) {
+    // Filter out empty or undefined keys
+    this.apiKeys = [apiKey, ...additionalApiKeys].filter(key => key && key.trim() !== '');
+    console.log(`Initialized GeminiService with ${this.apiKeys.length} API keys`);
+  }
+  
+  /**
+   * Gets the current API key
+   */
+  private getCurrentApiKey(): string {
+    return this.apiKeys[this.currentKeyIndex];
+  }
+  
+  /**
+   * Rotates to the next available API key
+   */
+  private rotateApiKey(): string {
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    console.log(`Rotated to API key index: ${this.currentKeyIndex}`);
+    return this.getCurrentApiKey();
   }
 
   /**
@@ -738,13 +757,21 @@ const ExampleComponent = () => {
   }
 
   /**
-   * Core method to call Gemini API
+   * Core method to call Gemini API with automatic key rotation on rate limits
    */
-  private async generateContent(prompt: string): Promise<any> {
-    const url = `${this.baseUrl}?key=${this.apiKey}`;
+  private async generateContent(prompt: string, retryCount: number = 0): Promise<any> {
+    // Maximum number of retries to prevent infinite loops
+    const MAX_RETRIES = this.apiKeys.length * 2;
+    
+    if (retryCount >= MAX_RETRIES) {
+      throw new Error(`Exceeded maximum retry attempts (${MAX_RETRIES}) for Gemini API call`);
+    }
+    
+    const currentKey = this.getCurrentApiKey();
+    const url = `${this.baseUrl}?key=${currentKey}`;
     
     try {
-      console.log("Calling Gemini API");
+      console.log(`Calling Gemini API with key index ${this.currentKeyIndex}`);
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -767,9 +794,22 @@ const ExampleComponent = () => {
       });
 
       if (!response.ok) {
-        console.error(`API request failed with status ${response.status}`);
         const responseText = await response.text();
-        console.error(`Response: ${responseText}`);
+        console.error(`API request failed with status ${response.status}: ${responseText}`);
+        
+        // Check for rate limit errors (status 429 or specific error messages)
+        const isRateLimitError = 
+          response.status === 429 || 
+          responseText.includes('rate limit') || 
+          responseText.includes('quota exceeded');
+        
+        if (isRateLimitError && this.apiKeys.length > 1) {
+          console.log('Rate limit detected, rotating to next API key');
+          this.rotateApiKey();
+          // Retry with the new key
+          return this.generateContent(prompt, retryCount + 1);
+        }
+        
         throw new Error(`API request failed with status ${response.status}`);
       }
 
@@ -777,10 +817,25 @@ const ExampleComponent = () => {
       return data;
     } catch (error) {
       console.error("Error calling Gemini API:", error);
+      
+      // If we have multiple keys and this looks like a network error, try the next key
+      if (this.apiKeys.length > 1 && retryCount < MAX_RETRIES) {
+        console.log('Error encountered, trying next API key');
+        this.rotateApiKey();
+        return this.generateContent(prompt, retryCount + 1);
+      }
+      
       throw error;
     }
   }
 }
 
-// Create and export a singleton instance with the API key
-export const geminiService = new GeminiService(import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM');
+// Create and export a singleton instance with multiple API keys for rotation
+export const geminiService = new GeminiService(
+  import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM',
+  [
+    import.meta.env.VITE_GEMINI_API_KEY_2,
+    import.meta.env.VITE_GEMINI_API_KEY_3,
+    import.meta.env.VITE_GEMINI_API_KEY_4
+  ]
+);
