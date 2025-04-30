@@ -36,6 +36,25 @@ npm i
 npm run dev
 ```
 
+## Environment Setup
+
+1. Copy `.env.example` to `.env`
+2. Fill in your API keys and credentials
+3. Never commit `.env` file to version control
+
+Required environment variables:
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `VITE_GEMINI_API_KEY`: Primary Gemini API key
+- `VITE_GITHUB_CLIENT_ID`: GitHub OAuth client ID
+- `VITE_GITHUB_CLIENT_SECRET`: GitHub OAuth client secret
+- `VITE_POLAR_ACCESS_TOKEN`: Polar access token
+
+Optional variables:
+- `VITE_GEMINI_API_KEY_2`: Backup Gemini API key
+- `VITE_GEMINI_API_KEY_3`: Backup Gemini API key
+- `VITE_GEMINI_API_KEY_4`: Backup Gemini API key
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
