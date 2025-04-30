@@ -23,5 +23,5 @@ export class PolarService {
 
 // Use the token provided by the user
 export const polarService = new PolarService(
-  "polar_oat_tt7VJOxYYvckQIuUaSqvfgQwS61ZcJNXuQTSr0lizES"
+  import.meta.env.VITE_POLAR_ACCESS_TOKEN
 );

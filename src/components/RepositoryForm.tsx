@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,11 +194,16 @@ const RepositoryForm = () => {
   const handleConnectGitHub = async () => {
     try {
       const redirectUrl = new URL('/auth/callback', window.location.origin).toString();
+      const scopes = import.meta.env.VITE_GITHUB_OAUTH_SCOPES;
+      
+      if (!scopes) {
+        throw new Error('Missing GitHub OAuth configuration');
+      }
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          scopes: 'repo read:user user:email',
+          scopes,
           redirectTo: redirectUrl
         }
       });

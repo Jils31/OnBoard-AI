@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -10,6 +9,13 @@ interface SubscriptionAlertProps {
   currentPlan: 'free' | 'premium' | 'unlimited';
   analysisCounts: number;
   analysisLimit: number;
+}
+
+const PREMIUM_PRODUCT_ID = import.meta.env.VITE_POLAR_PRODUCT_ID_PREMIUM;
+const UNLIMITED_PRODUCT_ID = import.meta.env.VITE_POLAR_PRODUCT_ID_UNLIMITED;
+
+if (!PREMIUM_PRODUCT_ID || !UNLIMITED_PRODUCT_ID) {
+  throw new Error('Missing required Polar product IDs in environment variables');
 }
 
 export const SubscriptionAlert: React.FC<SubscriptionAlertProps> = ({ 
@@ -42,12 +48,12 @@ export const SubscriptionAlert: React.FC<SubscriptionAlertProps> = ({
           <div className="flex space-x-2">
             <Button 
               variant="secondary" 
-              onClick={() => handleUpgrade('16c1bcc2-bac7-4444-85e8-e0872f90e224')}
+              onClick={() => handleUpgrade(PREMIUM_PRODUCT_ID)}
             >
               Upgrade to Premium
             </Button>
             <Button 
-              onClick={() => handleUpgrade('843c09eb-c979-4946-a9db-5e58baf9b560')}
+              onClick={() => handleUpgrade(UNLIMITED_PRODUCT_ID)}
             >
               Upgrade to Unlimited
             </Button>
@@ -65,7 +71,7 @@ export const SubscriptionAlert: React.FC<SubscriptionAlertProps> = ({
         <AlertDescription className="flex items-center justify-between">
           <span>You have reached the monthly analysis limit for your Premium plan. Upgrade to continue analyzing repositories.</span>
           <Button 
-            onClick={() => handleUpgrade('843c09eb-c979-4946-a9db-5e58baf9b560')}
+            onClick={() => handleUpgrade(UNLIMITED_PRODUCT_ID)}
           >
             Upgrade to Unlimited
           </Button>

@@ -55,7 +55,7 @@ const plans = [
     ],
     buttonText: "Get Premium",
     highlight: true,
-    productId: "16c1bcc2-bac7-4444-85e8-e0872f90e224"
+    productId: import.meta.env.VITE_POLAR_PRODUCT_ID_PREMIUM
   },
   {
     name: "Unlimited",
@@ -72,7 +72,7 @@ const plans = [
     ],
     buttonText: "Contact Us",
     highlight: false,
-    productId: "843c09eb-c979-4946-a9db-5e58baf9b560"
+    productId: import.meta.env.VITE_POLAR_PRODUCT_ID_UNLIMITED
   }
 ];
 

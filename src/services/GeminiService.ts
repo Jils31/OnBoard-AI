@@ -832,7 +832,7 @@ const ExampleComponent = () => {
 
 // Create and export a singleton instance with multiple API keys for rotation
 export const geminiService = new GeminiService(
-  import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAhpUxIWCMhV-vjxqmLHhUe8aoxFrmRnXM',
+  import.meta.env.VITE_GEMINI_API_KEY,
   [
     import.meta.env.VITE_GEMINI_API_KEY_2,
     import.meta.env.VITE_GEMINI_API_KEY_3,
