@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -288,13 +287,6 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
               {/* Content area */}
               <div className="border rounded-md">
                 <Tabs defaultValue="preview">
-                  <div className="flex justify-between items-center p-4 border-b">
-                    <TabsList>
-                      <TabsTrigger value="preview">Preview</TabsTrigger>
-                      <TabsTrigger value="markdown">Markdown</TabsTrigger>
-                    </TabsList>
-                  </div>
-                  
                   <ScrollArea className="h-[520px]">
                     {activeSection === "code-examples" ? (
                       <div className="p-6">
@@ -319,11 +311,31 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
                       <div className="p-6">
                         <h2 className="text-2xl font-bold mb-4">Key Takeaways</h2>
                         {documentation.keyTakeaways && documentation.keyTakeaways.length > 0 ? (
-                          <ul className="list-disc pl-6 space-y-2">
-                            {documentation.keyTakeaways.map((item: string, index: number) => (
-                              <li key={index}>{item}</li>
+                          <div className="space-y-6">
+                            {documentation.keyTakeaways.map((item: any, index: number) => (
+                              <div key={index} className="bg-secondary/20 p-4 rounded-md">
+                                <h3 className="text-lg font-medium mb-2">{item.topic}</h3>
+                                <p className="mb-2 text-muted-foreground">{item.details}</p>
+                                {item.relatedFiles && item.relatedFiles.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="font-medium">Related Files:</p>
+                                    <ul className="list-disc pl-6">
+                                      {item.relatedFiles.map((file: string, fileIndex: number) => (
+                                        <li key={fileIndex} className="text-sm text-muted-foreground">
+                                          {file}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {item.importance && (
+                                  <Badge variant="secondary" className="mt-2">
+                                    Importance: {item.importance}
+                                  </Badge>
+                                )}
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         ) : (
                           <p>No key takeaways available.</p>
                         )}

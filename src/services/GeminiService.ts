@@ -568,101 +568,210 @@ const ExampleComponent = () => {
    * Generates comprehensive codebase documentation
    */
   async generateDocumentation(codebaseData: any): Promise<any> {
-    console.log("Generating documentation for codebase");
-    
-    const prompt = `
-      You are an expert technical writer creating comprehensive documentation for a codebase.
-      
-      CONTEXT:
-      - You're creating detailed documentation for new developers joining a project
-      - The documentation should explain the architecture, code patterns, and development workflows
-      - Focus on what would help developers get up to speed quickly
-      
-      REPOSITORY INFO:
-      ${JSON.stringify(codebaseData.repositoryInfo || {}, null, 2)}
-      
-      CODE ANALYSIS:
-      ${JSON.stringify(codebaseData.codeAnalysis || {}, null, 2)}
-      
-      CRITICAL PATHS:
-      ${JSON.stringify(codebaseData.criticalPaths || [], null, 2)}
-      
-      INSTRUCTIONS:
-      1. Create comprehensive documentation with the following sections:
-         a. Architecture Overview
-         b. Code Organization
-         c. Key Components and Services
-         d. Development Workflow
-         e. Important Patterns and Conventions
-         f. Getting Started Guide
-      2. Include code examples for common tasks
-      3. Highlight important sections that new developers should focus on
-      
-      OUTPUT FORMAT:
-      Provide your documentation as a JSON object with the following structure:
-      {
-        "title": "string (project name) Documentation",
-        "sections": [
-          {
-            "title": "string (section title)",
-            "content": "string (markdown formatted content)",
-            "importance": number (1-10 rating of how important this section is)
-          }
-        ],
-        "codeExamples": [
-          {
-            "title": "string (example title)",
-            "description": "string (what the example demonstrates)",
-            "code": "string (code snippet)",
-            "language": "string (language of the code snippet)"
-          }
-        ],
-        "keyTakeaways": ["string (list of critical information)"]
-      }
-      
-      Make your documentation comprehensive, accurate, and tailored specifically to this codebase.
-      Return ONLY valid JSON conforming to the structure above without additional text.
-    `;
-
     try {
-      console.log("Sending documentation generation request to Gemini");
-      const result = await this.generateContent(prompt);
-      console.log("Received documentation generation response");
-      
-      // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-        const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw documentation response:", text.substring(0, 200) + "...");
+        console.log("Starting documentation generation...");
         
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
+        const prompt = `
+            You are an expert technical writer creating comprehensive documentation for a codebase.
+            
+            ANALYSIS REQUIREMENTS:
+            1. Deep dive into actual implementation details
+            2. Focus on architectural patterns and decisions
+            3. Document all major features with code examples
+            4. Identify key workflows and data flows
+            5. Explain setup and configuration requirements
+            
+            REPOSITORY INFO:
+            ${JSON.stringify(codebaseData.repositoryInfo || {})}
+
+            CODE ANALYSIS:
+            ${JSON.stringify(codebaseData.codeAnalysis || {})}
+
+            Return a detailed JSON object with this structure:
+            {
+                "title": "Project Documentation",
+                "sections": [
+                    {
+                        "title": "string",
+                        "content": "string (detailed markdown with actual implementation details)",
+                        "importance": number,
+                        "subsections": [
+                            {
+                                "title": "string",
+                                "content": "string",
+                                "codeExamples": [
+                                    {
+                                        "filename": "string",
+                                        "code": "string",
+                                        "explanation": "string"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "architecture": {
+                    "overview": "string (detailed architectural description)",
+                    "patterns": ["string (list of design patterns used)"],
+                    "dataFlow": ["string (detailed data flow descriptions)"],
+                    "keyDecisions": [
+                        {
+                            "decision": "string",
+                            "rationale": "string",
+                            "impact": "string"
+                        }
+                    ]
+                },
+                "setup": {
+                    "prerequisites": ["string"],
+                    "environmentSetup": ["string"],
+                    "configuration": {
+                        "required": ["string"],
+                        "optional": ["string"]
+                    }
+                },
+                "features": [
+                    {
+                        "name": "string",
+                        "description": "string",
+                        "implementation": "string",
+                        "codeExample": "string",
+                        "dependencies": ["string"],
+                        "configuration": "string"
+                    }
+                ],
+                "codeExamples": [
+                    {
+                        "title": "string",
+                        "description": "string",
+                        "code": "string",
+                        "language": "string",
+                        "location": "string (file path)",
+                        "notes": "string"
+                    }
+                ],
+                "keyTakeaways": [
+                    {
+                        "topic": "string",
+                        "details": "string",
+                        "importance": "string",
+                        "relatedFiles": ["string"]
+                    }
+                ],
+                "bestPractices": [
+                    {
+                        "practice": "string",
+                        "explanation": "string",
+                        "example": "string"
+                    }
+                ],
+                "troubleshooting": [
+                    {
+                        "issue": "string",
+                        "solution": "string",
+                        "prevention": "string"
+                    }
+                ]
+            }
+
+            IMPORTANT GUIDELINES:
+            1. All examples must use ACTUAL code from the repository
+            2. Include specific file paths and component names
+            3. Document actual implementation patterns, not theoretical ones
+            4. Focus on practical, actionable information
+            5. Include detailed markdown formatting in content fields
+            6. Provide comprehensive code examples with explanations
+            7. Document all major features and workflows
+            8. Include setup and configuration details
+            9. Add troubleshooting guidance for common issues
+            10. Explain architectural decisions and their impact
+
+            Return ONLY valid JSON matching this structure. Be comprehensive and specific to this codebase.
+        `;
+
+        // ... rest of the existing code ...
+        // First log to verify function entry
+        console.log("Starting documentation generation...");
         
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            return JSON.parse(jsonMatch[1]);
-          } catch (err) {
-            console.error("Failed to parse JSON from response:", err);
+        // Validate input data
+        if (!codebaseData) {
+            console.error("No codebase data provided");
             return this.getDefaultDocumentationResponse();
-          }
-        } else {
-          // Try to parse the entire text as JSON
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err);
-            return this.getDefaultDocumentationResponse();
-          }
         }
-      }
-      
-      return this.getDefaultDocumentationResponse();
+
+        // Construct the prompt with strict JSON formatting
+        // const prompt = `
+        //     You are an expert technical writer. Analyze this codebase and return ONLY a JSON object with this exact structure:
+        //     {
+        //         "title": "Project Documentation",
+        //         "sections": [{
+        //             "title": "string",
+        //             "content": "string",
+        //             "importance": number
+        //         }],
+        //         "codeExamples": [{
+        //             "title": "string",
+        //             "description": "string",
+        //             "code": "string",
+        //             "language": "string"
+        //         }],
+        //         "keyTakeaways": ["string"]
+        //     }
+
+        //     Repository Info:
+        //     ${JSON.stringify(codebaseData.repositoryInfo || {})}
+
+        //     Code Analysis:
+        //     ${JSON.stringify(codebaseData.codeAnalysis || {})}
+        // `;
+
+        // Log before API call
+        console.log("Calling Gemini API...");
+        
+        const result = await this.generateContent(prompt);
+        
+        // Log after API call
+        console.log("Received API response:", result);
+
+        if (!result?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.error("Invalid API response structure");
+            return this.getDefaultDocumentationResponse();
+        }
+
+        const text = result.candidates[0].content.parts[0].text;
+        
+        // Clean and parse the response
+        const cleanText = text
+            .replace(/```(?:json)?|```/g, '')  // Remove code blocks
+            .replace(/[\u2018\u2019]/g, "'")   // Replace smart quotes
+            .replace(/[\u201C\u201D]/g, '"')   // Replace smart double quotes
+            .replace(/\r?\n/g, ' ')            // Replace newlines
+            .trim();
+
+        try {
+            // Try direct JSON parse first
+            return JSON.parse(cleanText);
+        } catch (parseError) {
+            console.error("First parse attempt failed:", parseError);
+            
+            // Try to extract JSON object
+            const match = cleanText.match(/(\{[\s\S]*\})/);
+            if (match) {
+                try {
+                    const extracted = match[1].trim();
+                    return JSON.parse(extracted);
+                } catch (extractError) {
+                    console.error("Second parse attempt failed:", extractError);
+                }
+            }
+            
+            return this.getDefaultDocumentationResponse();
+        }
     } catch (error) {
-      console.error("Error in generateDocumentation:", error);
-      return this.getDefaultDocumentationResponse();
+        console.error("Documentation generation failed:", error);
+        return this.getDefaultDocumentationResponse();
     }
-  }
+}
 
   /**
    * Default documentation response when API fails
