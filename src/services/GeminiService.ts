@@ -1,6 +1,13 @@
 /**
  * Service for interacting with Google's Gemini API
  */
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+}
+
 export class GeminiService {
   private apiKeys: string[];
   private currentKeyIndex: number = 0;
@@ -867,6 +874,93 @@ const ExampleComponent = () => {
       
       throw error;
     }
+  }
+
+  /**
+   * Generates quiz questions about the codebase
+   */
+  async generateQuizQuestions(codebaseData: any): Promise<QuizQuestion[]> {
+    const prompt = `
+      Generate 10 quiz questions about this codebase.
+      Focus on:
+      1. Architecture and design patterns
+      2. Component relationships
+      3. Data flow and state management
+      4. Key features and functionality
+      5. Best practices and conventions used
+
+      Repository Info:
+      ${JSON.stringify(codebaseData.repositoryInfo)}
+
+      Code Analysis:
+      ${JSON.stringify(codebaseData.codeAnalysis)}
+
+      Architecture:
+      ${JSON.stringify(codebaseData.architecture)}
+
+      Return ONLY a JSON array of questions in this format:
+      [
+        {
+          "question": "Question text here?",
+          "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+          "correctAnswer": 0,
+          "explanation": "Detailed explanation why this is correct"
+        }
+      ]
+    `;
+
+    try {
+      const result = await this.generateContent(prompt);
+      if (!result?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return this.getDefaultQuizQuestions(codebaseData);
+      }
+
+      const cleanText = result.candidates[0].content.parts[0].text
+        .replace(/```json|```/g, '')
+        .trim();
+
+      try {
+        const questions = JSON.parse(cleanText);
+        return Array.isArray(questions) ? questions : this.getDefaultQuizQuestions(codebaseData);
+      } catch (parseError) {
+        console.error("Error parsing quiz questions:", parseError);
+        return this.getDefaultQuizQuestions(codebaseData);
+      }
+    } catch (error) {
+      console.error("Error generating quiz questions:", error);
+      return this.getDefaultQuizQuestions(codebaseData);
+    }
+  }
+
+  /**
+   * Default quiz questions when API fails
+   */
+  private getDefaultQuizQuestions(codebaseData: any): QuizQuestion[] {
+    return [
+      {
+        question: `What is the main architectural pattern used in this codebase?`,
+        options: codebaseData.architecture?.patterns || [
+          "Component-Based Architecture",
+          "MVC",
+          "Layered Architecture",
+          "Microservices"
+        ],
+        correctAnswer: 0,
+        explanation: codebaseData.architecture?.overview || 
+          "The codebase follows a component-based architecture for better modularity and maintainability."
+      },
+      {
+        question: "Which state management approach is used in the application?",
+        options: [
+          "React Context API",
+          "Redux",
+          "MobX",
+          "Local State Only"
+        ],
+        correctAnswer: 0,
+        explanation: "The application uses React Context API for state management, allowing for efficient data sharing between components."
+      }
+    ];
   }
 }
 

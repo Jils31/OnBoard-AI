@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +16,7 @@ import CodebaseChatView from "@/components/analysis/CodebaseChatView";
 import DocumentationView from "@/components/analysis/DocumentationView";
 import LoadingState from "@/components/LoadingState";
 import { useToast } from "@/hooks/use-toast";
+import QuizView from '@/components/analysis/QuizView';
 
 const AnalysisPage = () => {
   const [searchParams] = useSearchParams();
@@ -254,7 +254,7 @@ const AnalysisPage = () => {
       )}
       
       <Tabs defaultValue="architecture">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="architecture">Architecture</TabsTrigger>
           <TabsTrigger value="critical-paths">Critical Paths</TabsTrigger>
           <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
@@ -262,6 +262,7 @@ const AnalysisPage = () => {
           <TabsTrigger value="chat">Ask AI</TabsTrigger>
           <TabsTrigger value="documentation">Documentation</TabsTrigger>
           <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
+          <TabsTrigger value="quiz">Quiz</TabsTrigger>
         </TabsList>
         
         <div className="mt-6">
@@ -353,6 +354,25 @@ const AnalysisPage = () => {
               <TutorialView 
                 data={analysisData.tutorialsAnalysis} 
                 role={role} 
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="h-64 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="quiz">
+            {analysisData ? (
+              <QuizView 
+                codebaseData={{
+                  repositoryInfo: repoInfo,
+                  codeAnalysis: analysisData.codeAnalysis,
+                  criticalPaths: analysisData.criticalPathsAnalysis.criticalPaths,
+                  architecture: analysisData.structureAnalysis.architecture
+                }}
+                role={role}
               />
             ) : (
               <div className="space-y-4">
