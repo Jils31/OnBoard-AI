@@ -14,6 +14,7 @@ import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { useGitHubToken } from "@/hooks/useGitHubToken";
 
 interface GithubRepo {
   id: number;
@@ -42,28 +43,18 @@ const RepositoryForm = () => {
   const { session } = useAuth();
   
   const subscription = useSubscription();
+  const isGitHubTokenValid = useGitHubToken();
   
   // Fetch GitHub token and repositories on component mount
   useEffect(() => {
-    const fetchGitHubToken = async () => {
-      // Try to get token from current session
-      if (session?.provider_token) {
-        setGithubToken(session.provider_token);
-        localStorage.setItem('github_token', session.provider_token);
-        fetchUserRepositories(session.provider_token);
-        return;
-      }
-      
-      // If no token in session, try localStorage
-      const storedToken = localStorage.getItem('github_token');
-      if (storedToken) {
-        setGithubToken(storedToken);
-        fetchUserRepositories(storedToken);
-      }
-    };
-    
-    fetchGitHubToken();
-  }, [session]);
+    if (!isGitHubTokenValid) {
+      setGithubToken(null);
+      setUserRepos([]);
+    } else if (session?.provider_token) {
+      setGithubToken(session.provider_token);
+      fetchUserRepositories(session.provider_token);
+    }
+  }, [isGitHubTokenValid, session]);
   
   const fetchUserRepositories = async (token: string) => {
     setIsLoadingRepos(true);
@@ -194,33 +185,26 @@ const RepositoryForm = () => {
   const handleConnectGitHub = async () => {
     try {
       const redirectUrl = new URL('/auth/callback', window.location.origin).toString();
-      const scopes = import.meta.env.VITE_GITHUB_OAUTH_SCOPES;
+      const scopes = import.meta.env.VITE_GITHUB_OAUTH_SCOPES || 'repo read:user user:email';
       
-      if (!scopes) {
-        throw new Error('Missing GitHub OAuth configuration');
-      }
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
           scopes,
-          redirectTo: redirectUrl
+          redirectTo: redirectUrl,
+          queryParams: {
+            prompt: 'consent'  // Always show consent screen
+          }
         }
       });
 
-      if (error) {
-        setConnectError(error.message);
-        toast({
-          title: "GitHub Connection Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
+      if (error) throw error;
+      
     } catch (error) {
       setConnectError("Failed to connect to GitHub. Please try again.");
       toast({
         title: "Connection Error",
-        description: "Failed to connect to GitHub. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to connect to GitHub",
         variant: "destructive"
       });
     }

@@ -5,25 +5,47 @@ import { Octokit } from "octokit";
  */
 export class GitHubService {
   private octokit: Octokit | null = null;
-  
-  /**
-   * Initialize with optional access token for authenticated requests
-   */
+  private static instance: GitHubService;
+
   constructor(accessToken?: string) {
-    // First try the provided token, then check localStorage
-    let token = accessToken;
-    
-    if (!token && typeof window !== 'undefined') {
-      token = localStorage.getItem('github_token') || undefined;
+    this.initializeOctokit(accessToken);
+  }
+
+  private initializeOctokit(accessToken?: string) {
+    try {
+      let token = accessToken;
+      
+      if (!token && typeof window !== 'undefined') {
+        token = localStorage.getItem('github_token');
+      }
+      
+      if (token) {
+        this.octokit = new Octokit({ 
+          auth: token,
+          request: {
+            timeout: 10000 // 10 second timeout
+          }
+        });
+      } else {
+        this.octokit = new Octokit({
+          request: {
+            timeout: 10000
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to initialize GitHub client:', error);
+      this.octokit = null;
     }
-    
-    if (token) {
-      this.octokit = new Octokit({ auth: token });
-      console.log("GitHubService initialized with auth token");
-    } else {
-      this.octokit = new Octokit();
-      console.log("GitHubService initialized without auth token");
-    }
+  }
+
+  public refreshToken(newToken: string) {
+    this.initializeOctokit(newToken);
+  }
+
+  public clearToken() {
+    localStorage.removeItem('github_token');
+    this.initializeOctokit();
   }
 
   /**

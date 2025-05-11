@@ -11,21 +11,26 @@ interface QuizQuestion {
 export class GeminiService {
   private apiKeys: string[];
   private currentKeyIndex: number = 0;
-  private baseUrl = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent';
+  private baseUrl =
+    "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent";
 
   constructor(apiKey: string, additionalApiKeys: string[] = []) {
     // Filter out empty or undefined keys
-    this.apiKeys = [apiKey, ...additionalApiKeys].filter(key => key && key.trim() !== '');
-    console.log(`Initialized GeminiService with ${this.apiKeys.length} API keys`);
+    this.apiKeys = [apiKey, ...additionalApiKeys].filter(
+      (key) => key && key.trim() !== ""
+    );
+    console.log(
+      `Initialized GeminiService with ${this.apiKeys.length} API keys`
+    );
   }
-  
+
   /**
    * Gets the current API key
    */
   private getCurrentApiKey(): string {
     return this.apiKeys[this.currentKeyIndex];
   }
-  
+
   /**
    * Rotates to the next available API key
    */
@@ -40,7 +45,7 @@ export class GeminiService {
    */
   async analyzeRepositoryStructure(repoData: any): Promise<any> {
     console.log("Analyzing repository structure with data:", repoData);
-    
+
     const prompt = `
       You are an expert software architect tasked with analyzing a GitHub repository.
       
@@ -104,24 +109,36 @@ export class GeminiService {
       console.log("Sending structure analysis request to Gemini");
       const result = await this.generateContent(prompt);
       console.log("Received structure analysis response");
-      
+
       // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+      if (
+        result.candidates &&
+        result.candidates[0] &&
+        result.candidates[0].content
+      ) {
         const text = result.candidates[0].content.parts[0].text;
-        
+
         // Try to extract JSON from the text (could be surrounded by markdown code blocks)
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
+        const jsonMatch =
+          text.match(/```json\s*([\s\S]*?)\s*```/) ||
+          text.match(/```\s*([\s\S]*?)\s*```/) ||
+          text.match(/(\{[\s\S]*\})/);
+
         if (jsonMatch && jsonMatch[1]) {
           try {
             const parsedJson = JSON.parse(jsonMatch[1]);
             console.log("Successfully parsed JSON from Gemini response");
             return parsedJson;
           } catch (err) {
-            console.error("Failed to parse JSON from response:", err, "Text:", jsonMatch[1]);
-            return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
+            console.error(
+              "Failed to parse JSON from response:",
+              err,
+              "Text:",
+              jsonMatch[1]
+            );
+            return this.getDefaultArchitectureResponse(
+              repoData.repositoryInfo.name
+            );
           }
         } else {
           // Try to parse the entire text as JSON
@@ -130,12 +147,19 @@ export class GeminiService {
             console.log("Successfully parsed JSON from entire Gemini response");
             return parsedJson;
           } catch (err) {
-            console.error("Failed to parse entire response as JSON:", err, "Text:", text.substring(0, 200) + "...");
-            return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
+            console.error(
+              "Failed to parse entire response as JSON:",
+              err,
+              "Text:",
+              text.substring(0, 200) + "..."
+            );
+            return this.getDefaultArchitectureResponse(
+              repoData.repositoryInfo.name
+            );
           }
         }
       }
-      
+
       return this.getDefaultArchitectureResponse(repoData.repositoryInfo.name);
     } catch (error) {
       console.error("Error in analyzeRepositoryStructure:", error);
@@ -151,22 +175,29 @@ export class GeminiService {
       architecture: {
         pattern: "Modern Web Application Architecture",
         description: `Based on the repository structure of ${repoName}, this appears to be a modern web application using component-based architecture.`,
-        mainComponents: ["Frontend Components", "Services", "Utilities"]
+        mainComponents: ["Frontend Components", "Services", "Utilities"],
       },
       systemMap: {
         nodes: [
           { id: "n1", label: "UI Layer", type: "container" },
           { id: "n2", label: "Service Layer", type: "container" },
-          { id: "n3", label: "Data Layer", type: "container" }
+          { id: "n3", label: "Data Layer", type: "container" },
         ],
         connections: [
           { from: "n1", to: "n2", label: "API Calls" },
-          { from: "n2", to: "n3", label: "Data Access" }
-        ]
+          { from: "n2", to: "n3", label: "Data Access" },
+        ],
       },
-      criticalComponents: ["Main Components", "API Services", "State Management"],
+      criticalComponents: [
+        "Main Components",
+        "API Services",
+        "State Management",
+      ],
       strengths: ["Modern architecture", "Separation of concerns"],
-      improvements: ["Could improve documentation", "Consider additional test coverage"]
+      improvements: [
+        "Could improve documentation",
+        "Consider additional test coverage",
+      ],
     };
   }
 
@@ -175,19 +206,22 @@ export class GeminiService {
    */
   async identifyCriticalCodePaths(codeData: any): Promise<any> {
     console.log("Identifying critical code paths with data:", codeData);
-    
+
     const fileContents = codeData.fileContents || [];
     const fileContentSamples = fileContents.map((file: any) => ({
       path: file.path,
-      snippet: file.content?.substring(0, 500) + '...' || 'No content available',
-      changeFrequency: file.changeFrequency
+      snippet:
+        file.content?.substring(0, 500) + "..." || "No content available",
+      changeFrequency: file.changeFrequency,
     }));
 
     const prompt = `
       You are an expert code analyst specializing in repository onboarding.
       
       CONTEXT:
-      - You're helping a ${codeData.role} developer understand the most important parts of a codebase
+      - You're helping a ${
+        codeData.role
+      } developer understand the most important parts of a codebase
       - You have git history data showing which files change most frequently
       - You have sample file contents of the most important files
       
@@ -229,7 +263,9 @@ export class GeminiService {
         "entryPoints": ["string (list of main entry points to the codebase)"]
       }
       
-      Focus on identifying patterns that a ${codeData.role} developer would find most relevant. Be specific, practical, and thorough.
+      Focus on identifying patterns that a ${
+        codeData.role
+      } developer would find most relevant. Be specific, practical, and thorough.
       Return ONLY the JSON object described above with no additional text or explanation.
     `;
 
@@ -237,17 +273,25 @@ export class GeminiService {
       console.log("Sending critical paths analysis request to Gemini");
       const result = await this.generateContent(prompt);
       console.log("Received critical paths analysis response");
-      
+
       // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+      if (
+        result.candidates &&
+        result.candidates[0] &&
+        result.candidates[0].content
+      ) {
         const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw critical paths response:", text.substring(0, 200) + "...");
-        
+        console.log(
+          "Raw critical paths response:",
+          text.substring(0, 200) + "..."
+        );
+
         // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
+        const jsonMatch =
+          text.match(/```json\s*([\s\S]*?)\s*```/) ||
+          text.match(/```\s*([\s\S]*?)\s*```/) ||
+          text.match(/(\{[\s\S]*\})/);
+
         if (jsonMatch && jsonMatch[1]) {
           try {
             return JSON.parse(jsonMatch[1]);
@@ -265,7 +309,7 @@ export class GeminiService {
           }
         }
       }
-      
+
       return this.getDefaultCriticalPathsResponse();
     } catch (error) {
       console.error("Error in identifyCriticalCodePaths:", error);
@@ -284,26 +328,41 @@ export class GeminiService {
           description: "The main application workflow that users interact with",
           importance: 9,
           files: ["src/App.tsx", "src/main.tsx", "src/pages/Index.tsx"],
-          dataFlow: ["User accesses application", "App initializes", "Main functionality loads"]
+          dataFlow: [
+            "User accesses application",
+            "App initializes",
+            "Main functionality loads",
+          ],
         },
         {
           name: "Data Processing",
           description: "How data is processed in the application",
           importance: 8,
-          files: ["src/services/GitHubService.ts", "src/services/GeminiService.ts"],
-          dataFlow: ["Data retrieved", "Data processed", "Results displayed to user"]
-        }
+          files: [
+            "src/services/GitHubService.ts",
+            "src/services/GeminiService.ts",
+          ],
+          dataFlow: [
+            "Data retrieved",
+            "Data processed",
+            "Results displayed to user",
+          ],
+        },
       ],
       frequentlyChangedFiles: [
         {
           filename: "src/components/RepositoryForm.tsx",
           count: 15,
           significance: "Core user interaction component",
-          recommendation: "Understand how user input is processed"
-        }
+          recommendation: "Understand how user input is processed",
+        },
       ],
-      keyBusinessLogic: ["Repository analysis", "Code structure visualization", "User interaction"],
-      entryPoints: ["src/main.tsx", "src/App.tsx", "src/pages/Index.tsx"]
+      keyBusinessLogic: [
+        "Repository analysis",
+        "Code structure visualization",
+        "User interaction",
+      ],
+      entryPoints: ["src/main.tsx", "src/App.tsx", "src/pages/Index.tsx"],
     };
   }
 
@@ -312,7 +371,7 @@ export class GeminiService {
    */
   async generateDependencyGraph(dependencies: any): Promise<any> {
     console.log("Generating dependency graph with data:", dependencies);
-    
+
     const prompt = `
       You are an expert in software dependency analysis with deep knowledge of code architecture.
       
@@ -364,17 +423,25 @@ export class GeminiService {
       console.log("Sending dependency graph request to Gemini");
       const result = await this.generateContent(prompt);
       console.log("Received dependency graph response");
-      
+
       // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+      if (
+        result.candidates &&
+        result.candidates[0] &&
+        result.candidates[0].content
+      ) {
         const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw dependency graph response:", text.substring(0, 200) + "...");
-        
+        console.log(
+          "Raw dependency graph response:",
+          text.substring(0, 200) + "..."
+        );
+
         // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
+        const jsonMatch =
+          text.match(/```json\s*([\s\S]*?)\s*```/) ||
+          text.match(/```\s*([\s\S]*?)\s*```/) ||
+          text.match(/(\{[\s\S]*\})/);
+
         if (jsonMatch && jsonMatch[1]) {
           try {
             return JSON.parse(jsonMatch[1]);
@@ -392,7 +459,7 @@ export class GeminiService {
           }
         }
       }
-      
+
       return this.getDefaultDependencyGraphResponse();
     } catch (error) {
       console.error("Error in generateDependencyGraph:", error);
@@ -410,20 +477,20 @@ export class GeminiService {
           { id: "n1", label: "App", type: "component" },
           { id: "n2", label: "Services", type: "service" },
           { id: "n3", label: "Components", type: "component" },
-          { id: "n4", label: "Utilities", type: "utility" }
+          { id: "n4", label: "Utilities", type: "utility" },
         ],
         edges: [
           { source: "n1", target: "n2", type: "imports" },
           { source: "n1", target: "n3", type: "imports" },
           { source: "n3", target: "n4", type: "imports" },
-          { source: "n2", target: "n4", type: "imports" }
-        ]
+          { source: "n2", target: "n4", type: "imports" },
+        ],
       },
       circularDependencies: [],
       recommendations: [
         "Consider creating clearer module boundaries",
-        "Improve separation of concerns between components"
-      ]
+        "Improve separation of concerns between components",
+      ],
     };
   }
 
@@ -432,19 +499,21 @@ export class GeminiService {
    */
   async createTutorial(workflow: any): Promise<any> {
     console.log("Creating tutorial with data:", workflow);
-    
+
     const repoInfo = workflow.repositoryInfo || {};
     const criticalPaths = workflow.criticalPaths || [];
-    
+
     // Extract more meaningful information for the tutorial
     const repoName = repoInfo.name || "Repository";
     const repoLanguage = repoInfo.language || "JavaScript";
-    
+
     const prompt = `
       You are an expert technical writer creating an interactive tutorial for developers.
       
       CONTEXT:
-      - You're creating a step-by-step tutorial for a ${workflow.role || 'developer'} developer
+      - You're creating a step-by-step tutorial for a ${
+        workflow.role || "developer"
+      } developer
       - The tutorial is for the repository: ${repoName} (${repoLanguage})
       - The developer is new to this codebase and needs clear, practical guidance
       - Focus on the most important coding patterns they need to understand
@@ -480,7 +549,9 @@ export class GeminiService {
         "additionalNotes": "string (important things to remember about this codebase specifically)"
       }
       
-      Make your tutorial practical, focused, and tailored to a ${workflow.role || 'developer'} developer.
+      Make your tutorial practical, focused, and tailored to a ${
+        workflow.role || "developer"
+      } developer.
       Ensure all code examples are real examples from the codebase. Focus on teaching patterns, not just syntax.
       Return ONLY valid JSON conforming to the structure above without additional text.
     `;
@@ -489,17 +560,22 @@ export class GeminiService {
       console.log("Sending tutorial creation request to Gemini");
       const result = await this.generateContent(prompt);
       console.log("Received tutorial creation response");
-      
+
       // Parse the JSON from the text response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+      if (
+        result.candidates &&
+        result.candidates[0] &&
+        result.candidates[0].content
+      ) {
         const text = result.candidates[0].content.parts[0].text;
         console.log("Raw tutorial response:", text.substring(0, 200) + "...");
-        
+
         // Try to extract JSON from the text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          text.match(/```\s*([\s\S]*?)\s*```/) || 
-                          text.match(/(\{[\s\S]*\})/);
-        
+        const jsonMatch =
+          text.match(/```json\s*([\s\S]*?)\s*```/) ||
+          text.match(/```\s*([\s\S]*?)\s*```/) ||
+          text.match(/(\{[\s\S]*\})/);
+
         if (jsonMatch && jsonMatch[1]) {
           try {
             return JSON.parse(jsonMatch[1]);
@@ -517,7 +593,7 @@ export class GeminiService {
           }
         }
       }
-      
+
       return this.getDefaultTutorialResponse(workflow.role, repoName);
     } catch (error) {
       console.error("Error in createTutorial:", error);
@@ -528,13 +604,16 @@ export class GeminiService {
   /**
    * Default tutorial response when API fails
    */
-  private getDefaultTutorialResponse(role: string = 'developer', repoName: string = 'Repository'): any {
+  private getDefaultTutorialResponse(
+    role: string = "developer",
+    repoName: string = "Repository"
+  ): any {
     return {
-      title: `Understanding ${repoName} for ${role || 'Developer'}s`,
+      title: `Understanding ${repoName} for ${role || "Developer"}s`,
       overview: `This tutorial provides an introduction to the ${repoName} repository structure and key components.`,
       prerequisites: [
         "Basic understanding of web development",
-        "Familiarity with JavaScript/TypeScript"
+        "Familiarity with JavaScript/TypeScript",
       ],
       steps: [
         {
@@ -546,7 +625,8 @@ src/
   services/     # Services for API interactions
   pages/        # Main application pages
   utils/        # Utility functions`,
-          explanation: "Most modern web applications follow a structured organization pattern to separate concerns and make code more maintainable."
+          explanation:
+            "Most modern web applications follow a structured organization pattern to separate concerns and make code more maintainable.",
         },
         {
           title: "Understanding Key Components",
@@ -564,10 +644,11 @@ const ExampleComponent = () => {
     </div>
   );
 };`,
-          explanation: "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data."
-        }
+          explanation:
+            "Components typically follow this pattern, using hooks to access services and data, then rendering UI based on that data.",
+        },
       ],
-      additionalNotes: `As you explore ${repoName} further, focus on understanding how data flows between components and which parts handle core business logic.`
+      additionalNotes: `As you explore ${repoName} further, focus on understanding how data flows between components and which parts handle core business logic.`,
     };
   }
 
@@ -576,9 +657,9 @@ const ExampleComponent = () => {
    */
   async generateDocumentation(codebaseData: any): Promise<any> {
     try {
-        console.log("Starting documentation generation...");
-        
-        const prompt = `
+      console.log("Starting documentation generation...");
+
+      const prompt = `
             You are an expert technical writer creating comprehensive documentation for a codebase.
             
             ANALYSIS REQUIREMENTS:
@@ -670,46 +751,46 @@ const ExampleComponent = () => {
 
             Return ONLY valid JSON matching this structure.`;
 
-        console.log("Calling Gemini API...");
-        const result = await this.generateContent(prompt);
-        
-        if (!result?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            console.error("Invalid API response structure");
-            return this.getDefaultDocumentationResponse();
-        }
+      console.log("Calling Gemini API...");
+      const result = await this.generateContent(prompt);
 
-        const text = result.candidates[0].content.parts[0].text;
-        console.log("Raw response received, cleaning...");
-        
-        // Clean and parse the response
-        const cleanText = text
-            .replace(/```(?:json)?|```/g, '')  // Remove code blocks
-            .replace(/[\u2018\u2019]/g, "'")   // Replace smart quotes
-            .replace(/[\u201C\u201D]/g, '"')   // Replace smart double quotes
-            .replace(/\r?\n/g, ' ')            // Replace newlines
-            .replace(/,\s*([\]}])/g, '$1')     // Remove trailing commas
-            .trim();
-
-        try {
-            return JSON.parse(cleanText);
-        } catch (parseError) {
-            console.error("Parse error:", parseError);
-            const match = cleanText.match(/(\{[\s\S]*\})/);
-            if (match) {
-                try {
-                    return JSON.parse(match[1].trim());
-                } catch (err) {
-                    console.error("Second parse attempt failed");
-                    return this.getDefaultDocumentationResponse();
-                }
-            }
-            return this.getDefaultDocumentationResponse();
-        }
-    } catch (error) {
-        console.error("Documentation generation failed:", error);
+      if (!result?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        console.error("Invalid API response structure");
         return this.getDefaultDocumentationResponse();
+      }
+
+      const text = result.candidates[0].content.parts[0].text;
+      console.log("Raw response received, cleaning...");
+
+      // Clean and parse the response
+      const cleanText = text
+        .replace(/```(?:json)?|```/g, "") // Remove code blocks
+        .replace(/[\u2018\u2019]/g, "'") // Replace smart quotes
+        .replace(/[\u201C\u201D]/g, '"') // Replace smart double quotes
+        .replace(/\r?\n/g, " ") // Replace newlines
+        .replace(/,\s*([\]}])/g, "$1") // Remove trailing commas
+        .trim();
+
+      try {
+        return JSON.parse(cleanText);
+      } catch (parseError) {
+        console.error("Parse error:", parseError);
+        const match = cleanText.match(/(\{[\s\S]*\})/);
+        if (match) {
+          try {
+            return JSON.parse(match[1].trim());
+          } catch (err) {
+            console.error("Second parse attempt failed");
+            return this.getDefaultDocumentationResponse();
+          }
+        }
+        return this.getDefaultDocumentationResponse();
+      }
+    } catch (error) {
+      console.error("Documentation generation failed:", error);
+      return this.getDefaultDocumentationResponse();
     }
-}
+  }
 
   /**
    * Default documentation response when API fails
@@ -720,42 +801,48 @@ const ExampleComponent = () => {
       sections: [
         {
           title: "Architecture Overview",
-          content: "This project follows a modern component-based architecture with separation of concerns between UI components, services, and utilities.",
-          importance: 10
+          content:
+            "This project follows a modern component-based architecture with separation of concerns between UI components, services, and utilities.",
+          importance: 10,
         },
         {
           title: "Code Organization",
-          content: "The codebase is organized into logical directories:\n\n- `/src/components`: UI components\n- `/src/services`: Business logic and API interactions\n- `/src/pages`: Main application views\n- `/src/utils`: Helper functions and utilities",
-          importance: 8
+          content:
+            "The codebase is organized into logical directories:\n\n- `/src/components`: UI components\n- `/src/services`: Business logic and API interactions\n- `/src/pages`: Main application views\n- `/src/utils`: Helper functions and utilities",
+          importance: 8,
         },
         {
           title: "Development Workflow",
-          content: "The typical development workflow includes:\n\n1. Understanding requirements\n2. Making code changes\n3. Testing functionality\n4. Submitting pull requests",
-          importance: 7
-        }
+          content:
+            "The typical development workflow includes:\n\n1. Understanding requirements\n2. Making code changes\n3. Testing functionality\n4. Submitting pull requests",
+          importance: 7,
+        },
       ],
       codeExamples: [
         {
           title: "Using Services",
           description: "How to use services to interact with APIs",
           code: "import { myService } from '@/services/myService';\n\nconst MyComponent = () => {\n  const data = myService.getData();\n  return <div>{data}</div>;\n};",
-          language: "typescript"
-        }
+          language: "typescript",
+        },
       ],
       keyTakeaways: [
         "Understand the component hierarchy",
         "Follow established patterns for new features",
-        "Leverage existing utilities rather than creating duplicates"
-      ]
+        "Leverage existing utilities rather than creating duplicates",
+      ],
     };
   }
 
   /**
    * Answer specific questions about the codebase
    */
-  async answerCodebaseQuestion(question: string, codebaseData: any): Promise<string> {
+  async answerCodebaseQuestion(
+    question: string,
+    codebaseData: any
+  ): Promise<string> {
     console.log("Answering codebase question:", question);
-    
+
     const prompt = `
       You are an AI assistant with deep knowledge of this specific codebase.
       
@@ -789,13 +876,17 @@ const ExampleComponent = () => {
       console.log("Sending codebase question to Gemini");
       const result = await this.generateContent(prompt);
       console.log("Received codebase question response");
-      
+
       // Extract text from response
-      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+      if (
+        result.candidates &&
+        result.candidates[0] &&
+        result.candidates[0].content
+      ) {
         const text = result.candidates[0].content.parts[0].text;
         return text;
       }
-      
+
       return "I'm having trouble answering that question right now. Please try again or rephrase your question.";
     } catch (error) {
       console.error("Error answering codebase question:", error);
@@ -806,57 +897,64 @@ const ExampleComponent = () => {
   /**
    * Core method to call Gemini API with automatic key rotation on rate limits
    */
-  private async generateContent(prompt: string, retryCount: number = 0): Promise<any> {
+  private async generateContent(
+    prompt: string,
+    retryCount: number = 0
+  ): Promise<any> {
     // Maximum number of retries to prevent infinite loops
     const MAX_RETRIES = this.apiKeys.length * 2;
-    
+
     if (retryCount >= MAX_RETRIES) {
-      throw new Error(`Exceeded maximum retry attempts (${MAX_RETRIES}) for Gemini API call`);
+      throw new Error(
+        `Exceeded maximum retry attempts (${MAX_RETRIES}) for Gemini API call`
+      );
     }
-    
+
     const currentKey = this.getCurrentApiKey();
     const url = `${this.baseUrl}?key=${currentKey}`;
-    
+
     try {
       console.log(`Calling Gemini API with key index ${this.currentKeyIndex}`);
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           contents: [
             {
-              role: 'user',
-              parts: [{ text: prompt }]
-            }
+              role: "user",
+              parts: [{ text: prompt }],
+            },
           ],
           generationConfig: {
             temperature: 0.2,
             topK: 32,
             topP: 0.95,
-            maxOutputTokens: 4096
-          }
+            maxOutputTokens: 4096,
+          },
         }),
       });
 
       if (!response.ok) {
         const responseText = await response.text();
-        console.error(`API request failed with status ${response.status}: ${responseText}`);
-        
+        console.error(
+          `API request failed with status ${response.status}: ${responseText}`
+        );
+
         // Check for rate limit errors (status 429 or specific error messages)
-        const isRateLimitError = 
-          response.status === 429 || 
-          responseText.includes('rate limit') || 
-          responseText.includes('quota exceeded');
-        
+        const isRateLimitError =
+          response.status === 429 ||
+          responseText.includes("rate limit") ||
+          responseText.includes("quota exceeded");
+
         if (isRateLimitError && this.apiKeys.length > 1) {
-          console.log('Rate limit detected, rotating to next API key');
+          console.log("Rate limit detected, rotating to next API key");
           this.rotateApiKey();
           // Retry with the new key
           return this.generateContent(prompt, retryCount + 1);
         }
-        
+
         throw new Error(`API request failed with status ${response.status}`);
       }
 
@@ -864,14 +962,14 @@ const ExampleComponent = () => {
       return data;
     } catch (error) {
       console.error("Error calling Gemini API:", error);
-      
+
       // If we have multiple keys and this looks like a network error, try the next key
       if (this.apiKeys.length > 1 && retryCount < MAX_RETRIES) {
-        console.log('Error encountered, trying next API key');
+        console.log("Error encountered, trying next API key");
         this.rotateApiKey();
         return this.generateContent(prompt, retryCount + 1);
       }
-      
+
       throw error;
     }
   }
@@ -916,12 +1014,14 @@ const ExampleComponent = () => {
       }
 
       const cleanText = result.candidates[0].content.parts[0].text
-        .replace(/```json|```/g, '')
+        .replace(/```json|```/g, "")
         .trim();
 
       try {
         const questions = JSON.parse(cleanText);
-        return Array.isArray(questions) ? questions : this.getDefaultQuizQuestions(codebaseData);
+        return Array.isArray(questions)
+          ? questions
+          : this.getDefaultQuizQuestions(codebaseData);
       } catch (parseError) {
         console.error("Error parsing quiz questions:", parseError);
         return this.getDefaultQuizQuestions(codebaseData);
@@ -943,23 +1043,20 @@ const ExampleComponent = () => {
           "Component-Based Architecture",
           "MVC",
           "Layered Architecture",
-          "Microservices"
+          "Microservices",
         ],
         correctAnswer: 0,
-        explanation: codebaseData.architecture?.overview || 
-          "The codebase follows a component-based architecture for better modularity and maintainability."
+        explanation:
+          codebaseData.architecture?.overview ||
+          "The codebase follows a component-based architecture for better modularity and maintainability.",
       },
       {
         question: "Which state management approach is used in the application?",
-        options: [
-          "React Context API",
-          "Redux",
-          "MobX",
-          "Local State Only"
-        ],
+        options: ["React Context API", "Redux", "MobX", "Local State Only"],
         correctAnswer: 0,
-        explanation: "The application uses React Context API for state management, allowing for efficient data sharing between components."
-      }
+        explanation:
+          "The application uses React Context API for state management, allowing for efficient data sharing between components.",
+      },
     ];
   }
 }
@@ -970,6 +1067,6 @@ export const geminiService = new GeminiService(
   [
     import.meta.env.VITE_GEMINI_API_KEY_2,
     import.meta.env.VITE_GEMINI_API_KEY_3,
-    import.meta.env.VITE_GEMINI_API_KEY_4
+    import.meta.env.VITE_GEMINI_API_KEY_4,
   ]
 );

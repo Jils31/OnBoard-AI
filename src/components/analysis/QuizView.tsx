@@ -17,7 +17,7 @@ interface QuizViewProps {
 interface QuizQuestion {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswer: number;  // Index of the correct answer
   explanation: string;
 }
 
@@ -30,10 +30,14 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
   const [showExplanation, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
   const [quizComplete, setQuizComplete] = useState(false);
+  const [isQuizInitialized, setIsQuizInitialized] = useState(false);
 
   useEffect(() => {
     const generateQuestions = async () => {
+      if (isQuizInitialized) return; // Prevent regenerating questions
+      
       try {
+        setLoading(true);
         const generatedQuestions = await geminiService.generateQuizQuestions(codebaseData);
         if (generatedQuestions.length > 0) {
           setQuestions(generatedQuestions);
@@ -54,6 +58,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
             }
           ]);
         }
+        setIsQuizInitialized(true);
       } catch (error) {
         console.error("Error generating quiz questions:", error);
         toast({
@@ -67,12 +72,25 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
     };
 
     generateQuestions();
-  }, [codebaseData]);
+  }, []); // Remove codebaseData from dependencies
 
   const handleAnswer = () => {
     if (selectedAnswer === null) return;
-    if (selectedAnswer === questions[currentQuestion].correctAnswer) {
+    
+    const isCorrect = selectedAnswer === questions[currentQuestion].correctAnswer;
+    if (isCorrect) {
       setScore(score + 1);
+      toast({
+        title: "Correct!",
+        description: "Well done! That's the right answer.",
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Incorrect",
+        description: "Try again next time!",
+        variant: "destructive",
+      });
     }
     setShowExplanation(true);
   };
@@ -93,6 +111,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
     setShowExplanation(false);
     setScore(0);
     setQuizComplete(false);
+    // Don't regenerate questions, just reset the quiz state
   };
 
   if (loading) {
@@ -100,7 +119,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Loading Quiz Questions...</CardTitle>
-          <CardDescription>Please wait while we analyze the codebase</CardDescription>
+          <CardDescription className='mt-2'>Please wait while we analyze the codebase</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -122,7 +141,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Codebase Knowledge Quiz</CardTitle>
-            <CardDescription>Test your understanding of the repository</CardDescription>
+            <CardDescription className='mt-2'>Test your understanding of the repository</CardDescription>
           </div>
           <Badge variant="secondary">
             {currentQuestion + 1} of {questions.length}
@@ -139,7 +158,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
             </div>
 
             <RadioGroup
-              value={selectedAnswer?.toString()}
+              value={selectedAnswer?.toString() || ""}
               onValueChange={(value) => setSelectedAnswer(parseInt(value))}
               className="space-y-3"
             >
@@ -151,11 +170,15 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
                     disabled={showExplanation}
                   />
                   <Label htmlFor={`option-${index}`}>{option}</Label>
-                  {showExplanation && index === questions[currentQuestion].correctAnswer && (
-                    <CheckCircle className="h-5 w-5 text-green-500 ml-2" />
-                  )}
-                  {showExplanation && selectedAnswer === index && index !== questions[currentQuestion].correctAnswer && (
-                    <XCircle className="h-5 w-5 text-red-500 ml-2" />
+                  {showExplanation && (
+                    <>
+                      {index === questions[currentQuestion].correctAnswer && (
+                        <CheckCircle className="h-5 w-5 text-green-500 ml-2" />
+                      )}
+                      {selectedAnswer === index && index !== questions[currentQuestion].correctAnswer && (
+                        <XCircle className="h-5 w-5 text-red-500 ml-2" />
+                      )}
+                    </>
                   )}
                 </div>
               ))}
@@ -165,6 +188,13 @@ export const QuizView: React.FC<QuizViewProps> = ({ codebaseData, role }) => {
               <div className="bg-muted p-4 rounded-md">
                 <p className="font-medium mb-2">Explanation:</p>
                 <p className="text-muted-foreground">
+                  <span className={selectedAnswer === questions[currentQuestion].correctAnswer ? 
+                    "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                    {selectedAnswer === questions[currentQuestion].correctAnswer ? 
+                      "Correct! " : "Incorrect. "}
+                  </span>
+                  The correct answer is: {questions[currentQuestion].options[questions[currentQuestion].correctAnswer]}.
+                  <br /><br />
                   {questions[currentQuestion].explanation}
                 </p>
               </div>

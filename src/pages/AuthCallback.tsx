@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,38 +11,41 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Handle the OAuth callback by exchanging the code for a session
         const { data, error } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error("Auth error:", error);
-          toast({
-            title: "Authentication error",
-            description: error.message,
-            variant: "destructive"
-          });
-          navigate('/auth');
-        } else if (data?.session) {
-          // Store GitHub token in localStorage for private repo access
-          if (data.session.provider_token) {
-            localStorage.setItem('github_token', data.session.provider_token);
-            console.log("GitHub token stored successfully");
+        if (error) throw error;
+        
+        if (data?.session) {
+          const { provider_token, expires_in } = data.session;
+          
+          if (provider_token) {
+            // Store token with expiry
+            const expiryTime = new Date().getTime() + (expires_in || 3600) * 1000;
+            localStorage.setItem('github_token', provider_token);
+            localStorage.setItem('github_token_expiry', expiryTime.toString());
+            
+            // Refresh GitHubService instance
+            githubService.refreshToken(provider_token);
+            
+            toast({
+              title: "Authentication successful",
+              description: "Successfully connected to GitHub",
+            });
           } else {
-            console.log("No GitHub provider token found in session");
+            throw new Error("No GitHub access token received");
           }
           
-          toast({
-            title: "Authentication successful",
-            description: "You have been signed in",
-          });
           navigate('/');
         } else {
-          // No session found, redirect to auth page
-          console.log("No session found");
-          navigate('/auth');
+          throw new Error("No session found");
         }
-      } catch (err) {
-        console.error("Error in auth callback:", err);
+      } catch (error) {
+        console.error("Auth callback error:", error);
+        toast({
+          title: "Authentication failed",
+          description: error instanceof Error ? error.message : "Failed to connect to GitHub",
+          variant: "destructive"
+        });
         navigate('/auth');
       }
     };
