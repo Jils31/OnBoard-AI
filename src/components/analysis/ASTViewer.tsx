@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GitBranch, FileCode, Grid2X2 } from 'lucide-react';
+import { GitBranch, FileCode, Grid2X2, Copy, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import Tree from 'react-d3-tree';
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +18,7 @@ const ASTViewer: React.FC<ASTViewerProps> = ({ ast }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'tree' | 'json'>('tree');
+  const [hasCopied, setHasCopied] = useState(false);
   
   // Get available languages
   const languages = ast ? Object.keys(ast) : [];
@@ -65,13 +65,17 @@ const ASTViewer: React.FC<ASTViewerProps> = ({ ast }) => {
   
   const treeData = astData ? convertAstToTreeData(astData) : null;
   
-  const handleCopyJSON = () => {
+  const handleCopyJSON = async () => {
     if (astData) {
-      navigator.clipboard.writeText(JSON.stringify(astData, null, 2));
+      await navigator.clipboard.writeText(JSON.stringify(astData, null, 2));
+      setHasCopied(true);
       toast({
         title: "Copied to clipboard",
         description: "AST JSON has been copied to your clipboard."
       });
+      
+      // Reset copy state after 2 seconds
+      setTimeout(() => setHasCopied(false), 2000);
     }
   };
   
@@ -98,29 +102,9 @@ const ASTViewer: React.FC<ASTViewerProps> = ({ ast }) => {
               Visualize the code structure through AST
             </CardDescription>
           </div>
-          <div className="flex space-x-2">
-            <TabsList>
-              <TabsTrigger 
-                value="tree" 
-                onClick={() => setViewMode('tree')}
-                className={viewMode === 'tree' ? 'bg-primary text-primary-foreground' : ''}
-              >
-                <GitBranch className="h-4 w-4 mr-2" />
-                Tree View
-              </TabsTrigger>
-              <TabsTrigger 
-                value="json" 
-                onClick={() => setViewMode('json')}
-                className={viewMode === 'json' ? 'bg-primary text-primary-foreground' : ''}
-              >
-                <FileCode className="h-4 w-4 mr-2" />
-                JSON View
-              </TabsTrigger>
-            </TabsList>
-          </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <Label htmlFor="language-select">Language</Label>
@@ -160,34 +144,67 @@ const ASTViewer: React.FC<ASTViewerProps> = ({ ast }) => {
           </div>
         </div>
 
-        {viewMode === 'tree' && treeData && (
-          <div className="bg-secondary/20 rounded-md h-[500px] border">
-            <Tree 
-              data={treeData}
-              orientation="vertical" 
-              pathFunc="step"
-              translate={{ x: 300, y: 50 }}
-              separation={{ siblings: 1.5, nonSiblings: 2 }}
-              nodeSize={{ x: 200, y: 100 }}
-              collapsible={true}
-            />
-          </div>
-        )}
-        
-        {viewMode === 'json' && astData && (
-          <div className="relative">
-            <Button 
-              onClick={handleCopyJSON} 
-              variant="outline" 
-              className="absolute top-2 right-2"
-            >
-              Copy JSON
-            </Button>
-            <ScrollArea className="h-[500px] p-4 bg-secondary/20 rounded-md border">
-              <pre className="text-xs">{JSON.stringify(astData, null, 2)}</pre>
-            </ScrollArea>
-          </div>
-        )}
+        <Tabs defaultValue="tree" value={viewMode} onValueChange={(value) => setViewMode(value as 'tree' | 'json')}>
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="tree" className="flex-1">
+              <GitBranch className="h-4 w-4 mr-2" />
+              Tree View
+            </TabsTrigger>
+            <TabsTrigger value="json" className="flex-1">
+              <FileCode className="h-4 w-4 mr-2" />
+              JSON View
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tree">
+            {treeData ? (
+              <div className="bg-secondary/20 rounded-lg h-[600px] border relative">
+                <Tree 
+                  data={treeData}
+                  orientation="vertical" 
+                  pathFunc="step"
+                  translate={{ x: 300, y: 50 }}
+                  separation={{ siblings: 1.5, nonSiblings: 2 }}
+                  nodeSize={{ x: 200, y: 100 }}
+                  collapsible={true}
+                />
+              </div>
+            ) : (
+              <EmptyState />
+            )}
+          </TabsContent>
+
+          <TabsContent value="json">
+            {astData ? (
+              <div className="relative">
+                <Button 
+                  onClick={handleCopyJSON} 
+                  variant="outline" 
+                  className="absolute top-2 right-2 z-10"
+                >
+                  {hasCopied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy JSON
+                    </>
+                  )}
+                </Button>
+                <ScrollArea className="h-[600px] w-full rounded-lg border bg-muted/50">
+                  <pre className="p-4 text-sm">
+                    {JSON.stringify(astData, null, 2)}
+                  </pre>
+                </ScrollArea>
+              </div>
+            ) : (
+              <EmptyState />
+            )}
+          </TabsContent>
+        </Tabs>
         
         {!treeData && !astData && (
           <div className="flex flex-col items-center justify-center h-[300px] bg-secondary/20 rounded-md border">
@@ -199,5 +216,12 @@ const ASTViewer: React.FC<ASTViewerProps> = ({ ast }) => {
     </Card>
   );
 };
+
+const EmptyState = () => (
+  <div className="flex flex-col items-center justify-center h-[600px] bg-secondary/20 rounded-lg border">
+    <Grid2X2 className="h-12 w-12 text-muted-foreground mb-4" />
+    <p className="text-muted-foreground">No AST data available for the selected file.</p>
+  </div>
+);
 
 export default ASTViewer;
