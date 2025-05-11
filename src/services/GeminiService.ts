@@ -579,7 +579,7 @@ const ExampleComponent = () => {
             2. Focus on architectural patterns and decisions
             3. Document all major features with code examples
             4. Identify key workflows and data flows
-            5. Explain setup and configuration requirements
+            5. Document all components with their purposes
             
             REPOSITORY INFO:
             ${JSON.stringify(codebaseData.repositoryInfo || {})}
@@ -590,30 +590,43 @@ const ExampleComponent = () => {
             Return a detailed JSON object with this structure:
             {
                 "title": "Project Documentation",
-                "sections": [
-                    {
-                        "title": "string",
-                        "content": "string (detailed markdown with actual implementation details)",
-                        "importance": number,
-                        "subsections": [
-                            {
-                                "title": "string",
-                                "content": "string",
-                                "codeExamples": [
-                                    {
-                                        "filename": "string",
-                                        "code": "string",
-                                        "explanation": "string"
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ],
+                "components": {
+                    "pages": [
+                        {
+                            "name": "string",
+                            "description": "string",
+                            "filePath": "string",
+                            "responsibilities": ["string"]
+                        }
+                    ],
+                    "features": [
+                        {
+                            "name": "string",
+                            "description": "string",
+                            "filePath": "string",
+                            "dependencies": ["string"]
+                        }
+                    ],
+                    "ui": [
+                        {
+                            "name": "string",
+                            "description": "string",
+                            "filePath": "string"
+                        }
+                    ],
+                    "services": [
+                        {
+                            "name": "string",
+                            "description": "string",
+                            "filePath": "string",
+                            "methods": ["string"]
+                        }
+                    ]
+                },
                 "architecture": {
-                    "overview": "string (detailed architectural description)",
-                    "patterns": ["string (list of design patterns used)"],
-                    "dataFlow": ["string (detailed data flow descriptions)"],
+                    "overview": "string",
+                    "patterns": ["string"],
+                    "dataFlow": ["string"],
                     "keyDecisions": [
                         {
                             "decision": "string",
@@ -636,40 +649,7 @@ const ExampleComponent = () => {
                         "description": "string",
                         "implementation": "string",
                         "codeExample": "string",
-                        "dependencies": ["string"],
-                        "configuration": "string"
-                    }
-                ],
-                "codeExamples": [
-                    {
-                        "title": "string",
-                        "description": "string",
-                        "code": "string",
-                        "language": "string",
-                        "location": "string (file path)",
-                        "notes": "string"
-                    }
-                ],
-                "keyTakeaways": [
-                    {
-                        "topic": "string",
-                        "details": "string",
-                        "importance": "string",
-                        "relatedFiles": ["string"]
-                    }
-                ],
-                "bestPractices": [
-                    {
-                        "practice": "string",
-                        "explanation": "string",
-                        "example": "string"
-                    }
-                ],
-                "troubleshooting": [
-                    {
-                        "issue": "string",
-                        "solution": "string",
-                        "prevention": "string"
+                        "dependencies": ["string"]
                     }
                 ]
             }
@@ -677,68 +657,22 @@ const ExampleComponent = () => {
             IMPORTANT GUIDELINES:
             1. All examples must use ACTUAL code from the repository
             2. Include specific file paths and component names
-            3. Document actual implementation patterns, not theoretical ones
+            3. Document actual implementation patterns
             4. Focus on practical, actionable information
-            5. Include detailed markdown formatting in content fields
-            6. Provide comprehensive code examples with explanations
-            7. Document all major features and workflows
-            8. Include setup and configuration details
-            9. Add troubleshooting guidance for common issues
-            10. Explain architectural decisions and their impact
+            5. Document all major features and workflows
 
-            Return ONLY valid JSON matching this structure. Be comprehensive and specific to this codebase.
-        `;
+            Return ONLY valid JSON matching this structure.`;
 
-        // ... rest of the existing code ...
-        // First log to verify function entry
-        console.log("Starting documentation generation...");
-        
-        // Validate input data
-        if (!codebaseData) {
-            console.error("No codebase data provided");
-            return this.getDefaultDocumentationResponse();
-        }
-
-        // Construct the prompt with strict JSON formatting
-        // const prompt = `
-        //     You are an expert technical writer. Analyze this codebase and return ONLY a JSON object with this exact structure:
-        //     {
-        //         "title": "Project Documentation",
-        //         "sections": [{
-        //             "title": "string",
-        //             "content": "string",
-        //             "importance": number
-        //         }],
-        //         "codeExamples": [{
-        //             "title": "string",
-        //             "description": "string",
-        //             "code": "string",
-        //             "language": "string"
-        //         }],
-        //         "keyTakeaways": ["string"]
-        //     }
-
-        //     Repository Info:
-        //     ${JSON.stringify(codebaseData.repositoryInfo || {})}
-
-        //     Code Analysis:
-        //     ${JSON.stringify(codebaseData.codeAnalysis || {})}
-        // `;
-
-        // Log before API call
         console.log("Calling Gemini API...");
-        
         const result = await this.generateContent(prompt);
         
-        // Log after API call
-        console.log("Received API response:", result);
-
         if (!result?.candidates?.[0]?.content?.parts?.[0]?.text) {
             console.error("Invalid API response structure");
             return this.getDefaultDocumentationResponse();
         }
 
         const text = result.candidates[0].content.parts[0].text;
+        console.log("Raw response received, cleaning...");
         
         // Clean and parse the response
         const cleanText = text
@@ -746,25 +680,22 @@ const ExampleComponent = () => {
             .replace(/[\u2018\u2019]/g, "'")   // Replace smart quotes
             .replace(/[\u201C\u201D]/g, '"')   // Replace smart double quotes
             .replace(/\r?\n/g, ' ')            // Replace newlines
+            .replace(/,\s*([\]}])/g, '$1')     // Remove trailing commas
             .trim();
 
         try {
-            // Try direct JSON parse first
             return JSON.parse(cleanText);
         } catch (parseError) {
-            console.error("First parse attempt failed:", parseError);
-            
-            // Try to extract JSON object
+            console.error("Parse error:", parseError);
             const match = cleanText.match(/(\{[\s\S]*\})/);
             if (match) {
                 try {
-                    const extracted = match[1].trim();
-                    return JSON.parse(extracted);
-                } catch (extractError) {
-                    console.error("Second parse attempt failed:", extractError);
+                    return JSON.parse(match[1].trim());
+                } catch (err) {
+                    console.error("Second parse attempt failed");
+                    return this.getDefaultDocumentationResponse();
                 }
             }
-            
             return this.getDefaultDocumentationResponse();
         }
     } catch (error) {

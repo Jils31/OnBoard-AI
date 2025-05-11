@@ -9,6 +9,72 @@ import { geminiService } from '@/services/GeminiService';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
+import { BookOpen, Lightbulb } from 'lucide-react';
+import SystemMap from '@/components/SystemMap';
+
+interface CodeExample {
+  title: string;
+  description: string;
+  code: string;
+}
+
+interface KeyTakeaway {
+  topic: string;
+  details: string;
+  importance?: string;
+  relatedFiles?: string[];
+}
+
+interface Documentation {
+  title: string;
+  components: {
+    pages: Array<{
+      name: string;
+      description: string;
+      filePath: string;
+    }>;
+    features: Array<{
+      name: string;
+      description: string;
+      filePath: string;
+    }>;
+    ui: Array<{
+      name: string;
+      description: string;
+      filePath: string;
+    }>;
+    services: Array<{
+      name: string;
+      description: string;
+      filePath: string;
+    }>;
+  };
+  architecture: {
+    overview: string;
+    patterns: string[];
+    dataFlow: string[];
+    keyDecisions: Array<{
+      decision: string;
+      rationale: string;
+      impact: string;
+    }>;
+  };
+  setup: {
+    prerequisites: string[];
+    environmentSetup: string[];
+    configuration: {
+      required: string[];
+      optional: string[];
+    };
+  };
+  features: Array<{
+    name: string;
+    description: string;
+    implementation: string;
+    codeExample: string;
+    dependencies: string[];
+  }>;
+}
 
 interface DocumentationViewProps {
   repositoryInfo: any;
@@ -31,11 +97,6 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
     if (isGenerating) return;
     
     setIsGenerating(true);
-    toast({
-      title: "Generating Documentation",
-      description: "Please wait while we analyze the codebase and generate documentation..."
-    });
-    
     try {
       const result = await geminiService.generateDocumentation({
         repositoryInfo,
@@ -43,13 +104,69 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
         criticalPaths
       });
       
-      setDocumentation(result);
-      setActiveSection(result.sections[0]?.title || null);
+      // Add null checks for all properties
+      const transformedDoc = {
+        title: result?.title || 'Documentation',
+        sections: [
+          {
+            title: "Overview",
+            content: result?.architecture?.overview || 'No overview available',
+            importance: 10
+          },
+          {
+            title: "Architecture Patterns",
+            content: result?.architecture?.patterns?.map(p => `- ${p}`).join('\n') || 'No patterns defined',
+            importance: 9
+          },
+          {
+            title: "Data Flow",
+            content: result?.architecture?.dataFlow?.map(d => `${d}`).join('\n\n') || 'No data flow defined',
+            importance: 8
+          },
+          {
+            title: "Key Decisions",
+            content: result?.architecture?.keyDecisions?.map(d => 
+              `### ${d.decision}\n\n**Rationale:** ${d.rationale}\n\n**Impact:** ${d.impact}`
+            ).join('\n\n') || 'No key decisions documented',
+            importance: 8
+          },
+          {
+            title: "Setup Guide",
+            content: `### Prerequisites\n${result?.setup?.prerequisites?.map(p => `- ${p}`).join('\n') || 'No prerequisites defined'}\n\n### Environment Setup\n${result?.setup?.environmentSetup?.map(e => `- ${e}`).join('\n') || 'No setup steps defined'}`,
+            importance: 7
+          }
+        ],
+        components: {
+          pages: result?.components?.pages || [],
+          features: result?.components?.features || [],
+          ui: result?.components?.ui || [],
+          services: result?.components?.services || []
+        },
+        architecture: {
+          overview: result?.architecture?.overview || '',
+          patterns: result?.architecture?.patterns || [],
+          dataFlow: result?.architecture?.dataFlow || [],
+          keyDecisions: result?.architecture?.keyDecisions || []
+        },
+        codeExamples: (result?.features || []).map(f => ({
+          title: f.name || 'Untitled Example',
+          description: f.description || '',
+          code: f.codeExample || ''
+        })),
+        keyTakeaways: (result?.architecture?.keyDecisions || []).map(d => ({
+          topic: d.decision || '',
+          details: d.rationale || '',
+          importance: "High",
+          relatedFiles: []
+        }))
+      };
+
+      setDocumentation(transformedDoc);
+      setActiveSection(transformedDoc.sections[0].title);
       
       toast({
         title: "Documentation Generated",
-        description: "Documentation has been successfully generated.",
-        variant: "default"
+        description: "Documentation has been successfully generated."
       });
     } catch (error) {
       console.error("Error generating documentation:", error);
@@ -242,13 +359,13 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
           </div>
         ) : (
           <div className="flex flex-col space-y-4">
-            <div className="grid md:grid-cols-[250px_1fr] gap-4 h-[600px]">
+            <div className="grid md:grid-cols-[300px_1fr] gap-4 h-[600px]">
               {/* Table of contents */}
               <div className="border rounded-md p-4">
                 <h3 className="font-medium mb-2">Table of Contents</h3>
                 <ScrollArea className="h-[520px]">
                   <ul className="space-y-1">
-                    {documentation.sections.map((section: any) => (
+                    {documentation?.sections?.map((section: any) => (
                       <li key={section.title}>
                         <Button 
                           variant={activeSection === section.title ? "default" : "ghost"}
@@ -261,7 +378,7 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
                           )}
                         </Button>
                       </li>
-                    ))}
+                    )) || null}
                     <li className="mt-4 pt-4 border-t">
                       <Button
                         variant="ghost"
@@ -286,93 +403,229 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({
               
               {/* Content area */}
               <div className="border rounded-md">
-                <Tabs defaultValue="preview">
-                  <ScrollArea className="h-[520px]">
-                    {activeSection === "code-examples" ? (
-                      <div className="p-6">
-                        <h2 className="text-2xl font-bold mb-4">Code Examples</h2>
-                        {documentation.codeExamples && documentation.codeExamples.length > 0 ? (
-                          <div className="space-y-6">
-                            {documentation.codeExamples.map((example: any, index: number) => (
-                              <div key={index} className="bg-secondary/20 p-4 rounded-md">
-                                <h3 className="text-xl font-medium mb-2">{example.title}</h3>
-                                <p className="mb-4 text-muted-foreground">{example.description}</p>
-                                <pre className="bg-secondary/30 p-4 rounded-md overflow-x-auto">
-                                  <code>{example.code}</code>
+                <ScrollArea className="h-[520px]">
+                  {activeSection === "code-examples" ? (
+                    <div className="p-6">
+                      <div className="flex items-center mb-6">
+                        <FileText className="w-6 h-6 mr-2 text-primary" />
+                        <h2 className="text-2xl font-bold">Code Examples</h2>
+                      </div>
+                      {documentation.codeExamples?.length > 0 ? (
+                        <div className="space-y-8">
+                          {documentation.codeExamples.map((example: CodeExample, index: number) => (
+                            <div key={index} className="bg-card border rounded-lg p-6">
+                              <h3 className="text-xl font-medium mb-3">{example.title}</h3>
+                              <p className="mb-4 text-muted-foreground">{example.description}</p>
+                              <div className="relative">
+                                <pre className="bg-secondary/20 p-4 rounded-md overflow-x-auto">
+                                  <code className="text-sm">{example.code}</code>
                                 </pre>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => navigator.clipboard.writeText(example.code)}
+                                >
+                                  Copy Code
+                                </Button>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p>No code examples available.</p>
-                        )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState message="No code examples available" />
+                      )}
+                    </div>
+                  ) : activeSection === "key-takeaways" ? (
+                    <div className="p-6">
+                      <div className="flex items-center mb-6">
+                        <Lightbulb className="w-6 h-6 mr-2 text-primary" />
+                        <h2 className="text-2xl font-bold">Key Takeaways</h2>
                       </div>
-                    ) : activeSection === "key-takeaways" ? (
-                      <div className="p-6">
-                        <h2 className="text-2xl font-bold mb-4">Key Takeaways</h2>
-                        {documentation.keyTakeaways && documentation.keyTakeaways.length > 0 ? (
-                          <div className="space-y-6">
-                            {documentation.keyTakeaways.map((item: any, index: number) => (
-                              <div key={index} className="bg-secondary/20 p-4 rounded-md">
-                                <h3 className="text-lg font-medium mb-2">{item.topic}</h3>
-                                <p className="mb-2 text-muted-foreground">{item.details}</p>
-                                {item.relatedFiles && item.relatedFiles.length > 0 && (
-                                  <div className="mt-2">
-                                    <p className="font-medium">Related Files:</p>
-                                    <ul className="list-disc pl-6">
-                                      {item.relatedFiles.map((file: string, fileIndex: number) => (
-                                        <li key={fileIndex} className="text-sm text-muted-foreground">
-                                          {file}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                                {item.importance && (
-                                  <Badge variant="secondary" className="mt-2">
-                                    Importance: {item.importance}
-                                  </Badge>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p>No key takeaways available.</p>
-                        )}
-                      </div>
-                    ) : (
-                      <TabsContent value="preview" className="p-6 relative">
-                        {activeContent ? (
-                          <div>
-                            <div className="flex items-center justify-between mb-4">
-                              <h2 className="text-2xl font-bold">{activeContent.title}</h2>
-                              {activeContent.importance >= 8 && (
-                                <Badge className="bg-amber-500">Important Section</Badge>
+                      <div className="grid gap-6">
+                        {documentation.keyTakeaways?.map((item: KeyTakeaway, index: number) => (
+                          <div key={index} className="bg-card border rounded-lg p-6">
+                            <div className="flex items-start justify-between">
+                              <h3 className="text-lg font-medium">{item.topic}</h3>
+                              {item.importance && (
+                                <Badge variant="secondary">
+                                  {item.importance}
+                                </Badge>
                               )}
                             </div>
-                            <div className="prose dark:prose-invert max-w-none">
-                              <ReactMarkdown>
+                            <p className="mt-2 text-muted-foreground">{item.details}</p>
+                            {item.relatedFiles?.length > 0 && (
+                              <div className="mt-4 bg-secondary/20 p-3 rounded-md">
+                                <p className="font-medium text-sm mb-2">Related Files:</p>
+                                <div className="grid gap-1">
+                                  {item.relatedFiles.map((file, fileIndex) => (
+                                    <code key={fileIndex} className="text-xs">{file}</code>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : activeContent?.title === "Architecture Patterns" ? (
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center">
+                          <BookOpen className="w-6 h-6 mr-2 text-primary" />
+                          <h2 className="text-2xl font-bold">{activeContent.title}</h2>
+                        </div>
+                        {activeContent.importance >= 8 && (
+                          <Badge className="bg-amber-500">Important Section</Badge>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-8">
+                        {/* Architecture Overview */}
+                        <div className="prose dark:prose-invert max-w-none">
+                          <div className="bg-card border rounded-lg p-6">
+                            <ReactMarkdown>{activeContent?.content || 'No content available'}</ReactMarkdown>
+                          </div>
+                        </div>
+
+                        {/* System Map */}
+                        {documentation?.components && (
+                          <div className="bg-card border rounded-lg p-6">
+                            <h3 className="text-xl font-semibold mb-4">System Component Map</h3>
+                            <SystemMap 
+                              nodes={[
+                                ...(documentation.components?.pages || []).map(page => ({
+                                  id: page.name || 'unnamed',
+                                  label: page.name || 'Unnamed Page',
+                                  type: 'Page',
+                                  description: page.description || '',
+                                  filePath: page.filePath || ''
+                                })),
+                                ...(documentation.components?.features || []).map(feature => ({
+                                  id: feature.name || 'unnamed',
+                                  label: feature.name || 'Unnamed Feature',
+                                  type: 'Feature',
+                                  description: feature.description || '',
+                                  filePath: feature.filePath || ''
+                                })),
+                                ...(documentation.components?.ui || []).map(ui => ({
+                                  id: ui.name || 'unnamed',
+                                  label: ui.name || 'Unnamed UI',
+                                  type: 'UI',
+                                  description: ui.description || '',
+                                  filePath: ui.filePath || ''
+                                })),
+                                ...(documentation.components?.services || []).map(service => ({
+                                  id: service.name || 'unnamed',
+                                  label: service.name || 'Unnamed Service',
+                                  type: 'Service',
+                                  description: service.description || '',
+                                  filePath: service.filePath || ''
+                                }))
+                              ].filter(Boolean)}
+                              connections={
+                                ((documentation.architecture?.dataFlow || []).map((flow, index) => {
+                                  try {
+                                    const parts = flow?.split(' ') || [];
+                                    if (parts.length < 3) return null;
+                                    return {
+                                      from: parts[0],
+                                      to: parts[parts.length - 1],
+                                      label: flow
+                                    };
+                                  } catch (error) {
+                                    console.error("Error processing data flow:", error);
+                                    return null;
+                                  }
+                                }) || []).filter(Boolean)
+                              }
+                            />
+                          </div>
+                        )}
+
+                        {/* Data Flow Section */}
+                        {documentation.architecture?.dataFlow && documentation.architecture.dataFlow.length > 0 && (
+                          <div className="bg-card border rounded-lg p-6">
+                            <h3 className="text-xl font-semibold mb-4">Data Flow</h3>
+                            <div className="space-y-2">
+                              {documentation.architecture.dataFlow.map((flow, index) => (
+                                <div key={index} className="flex items-start gap-2">
+                                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-0.5 rounded text-sm">
+                                    {index + 1}
+                                  </span>
+                                  <p className="text-muted-foreground">{flow}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Key Decisions Section */}
+                        {documentation?.architecture?.keyDecisions?.length > 0 && (
+                          <div className="bg-card border rounded-lg p-6">
+                            <h3 className="text-xl font-semibold mb-4">Key Architecture Decisions</h3>
+                            <div className="space-y-4">
+                              {documentation.architecture.keyDecisions.map((decision, index) => (
+                                <div key={index} className="border rounded-lg p-4">
+                                  <h4 className="font-medium text-lg mb-2">{decision.decision}</h4>
+                                  <div className="grid gap-2 text-sm">
+                                    <div>
+                                      <span className="font-medium">Rationale: </span>
+                                      <span className="text-muted-foreground">{decision.rationale}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Impact: </span>
+                                      <span className="text-muted-foreground">{decision.impact}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6">
+                      {activeContent && (
+                        <>
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center">
+                              <BookOpen className="w-6 h-6 mr-2 text-primary" />
+                              <h2 className="text-2xl font-bold">{activeContent.title}</h2>
+                            </div>
+                            {activeContent.importance >= 8 && (
+                              <Badge className="bg-amber-500">Important Section</Badge>
+                            )}
+                          </div>
+                          <div className="prose dark:prose-invert max-w-none">
+                            <div className="bg-card border rounded-lg p-6">
+                              <ReactMarkdown 
+                                components={{
+                                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4" {...props} />,
+                                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-6 mb-3" {...props} />,
+                                  h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                                  p: ({node, ...props}) => <p className="mb-4 text-muted-foreground" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-4" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-4" {...props} />,
+                                  li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                                  code: ({node, ...props}) => (
+                                    <code className="bg-secondary/20 px-1.5 py-0.5 rounded" {...props} />
+                                  ),
+                                  pre: ({node, ...props}) => (
+                                    <pre className="bg-secondary/20 p-4 rounded-md overflow-x-auto mb-4" {...props} />
+                                  ),
+                                }}
+                              >
                                 {activeContent.content}
                               </ReactMarkdown>
                             </div>
                           </div>
-                        ) : (
-                          <div className="text-center p-8 text-muted-foreground">
-                            Select a section from the table of contents
-                          </div>
-                        )}
-                      </TabsContent>
-                    )}
-                    
-                    <TabsContent value="markdown" className="relative">
-                      {activeContent && (
-                        <pre className="p-6 whitespace-pre-wrap font-mono text-sm">
-                          {activeContent.content}
-                        </pre>
+                        </>
                       )}
-                    </TabsContent>
-                  </ScrollArea>
-                </Tabs>
+                    </div>
+                  )}
+                </ScrollArea>
               </div>
             </div>
           </div>
