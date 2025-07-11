@@ -1,158 +1,198 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Github, Bot } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/AuthContext";
 
 const HeroSection = () => {
+  const { user } = useAuth();
+
   return (
-    <div className="py-16 md:py-24 px-4 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 text-white relative overflow-hidden">
-      {/* Background shapes */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-blue-500/20 blur-3xl"></div>
-        <div className="absolute top-1/2 -left-24 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/3 w-60 h-60 rounded-full bg-purple-500/20 blur-3xl"></div>
-      </div>
-      
-      <div className="container mx-auto max-w-6xl relative z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="md:w-1/2 mb-8 md:mb-0"
-          >
-            <motion.h1 
-              className="text-4xl md:text-6xl font-bold mb-4 leading-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              Understand codebases in{" "}
-              <span className="text-blue-200 relative">
-                minutes not weeks
-                <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 300 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 5.5C36.8333 3.16667 153.8 0.5 299 8.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                </svg>
-              </span>
-            </motion.h1>
-            
-            <motion.p 
-              className="text-xl md:text-2xl mb-6 text-blue-100 font-light"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              Onboarding Buddy uses AI to analyze repositories.
-            </motion.p>
-            
-            <motion.p 
-              className="mb-8 text-blue-100"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              Identify critical code paths, understand architecture patterns, 
-              and create interactive documentation that helps developers get productive quickly.
-            </motion.p>
-            
-            <motion.div 
-              className="flex flex-wrap gap-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-            >
-              <Link to="/dashboard">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+    <>
+      <section className="relative overflow-hidden py-20 mt-20 sm:py-32">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="w-full h-full relative">
+            {/* Grid lines (vertical + horizontal) */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(30,64,175,0.4)_1px,transparent_1px),linear-gradient(to_bottom,rgba(30,64,175,0.4)_1px,transparent_1px)] [background-size:60px_60px]" />
+
+            {/* Center glow (strong at center, fading out) */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(255,255,255,0.5)_40%,rgba(255,255,255,1)_80%)]" />
+
+            {/* Outer glow (transparent center, white edges) */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.5)_60%,rgba(255,255,255,1)_100%)]" />
+          </div>
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex flex-col-reverse lg:flex-row items-center gap-12">
+            {/* Left: Text Content */}
+            <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left">
+              <Badge
+                className="mb-6 px-4 py-1 text-sm bg-blue-50 text-blue-900 border border-blue-200 shadow-none rounded-full"
+                variant="secondary"
+              >
+                PRO PLAN – NOW AVAILABLE
+              </Badge>
+              <h1 className="text-5xl md:text-6xl font-extrabold text-blue-900 mb-6 leading-tight drop-shadow-sm">
+                Understand codebases in{" "}
+                <span className="relative inline-block">
+                  <span className="z-10 relative text-blue-700">minutes</span>
+                  <span className="absolute left-0 bottom-1 w-full h-2 bg-green-400/80 z-0 rounded-sm"></span>
+                </span>
+                <br />
+                not weeks
+              </h1>
+              <p className="text-lg md:text-xl text-blue-900/80 mb-10 max-w-2xl mx-auto lg:mx-0">
+                Onboard AI helps engineers analyze, visualize, and document
+                large codebases with AI-powered insights. Accelerate onboarding,
+                code reviews, and architecture understanding.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+                <Link to="/auth">
+                  <Button
+                    size="lg"
+                    className="gap-2 bg-blue-900 hover:bg-blue-800 text-white font-semibold px-7 py-3 text-lg rounded-xl shadow"
+                  >
+                    Try for Free <ArrowRight size={16} />
                   </Button>
-                </motion.div>
-              </Link>
-              <Link to="#features">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-blue-700 backdrop-blur-sm bg-white/10">
-                    Learn More
+                </Link>
+                <Link to="/auth">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="gap-2 border-blue-900 text-blue-900 font-semibold px-7 py-3 text-lg rounded-xl shadow hover:bg-blue-50 flex items-center"
+                  >
+                    <Github className="w-5 h-5 mr-2" />
+                    Sign in with GitHub
                   </Button>
-                </motion.div>
-              </Link>
-            </motion.div>
-          </motion.div>
-          
-          <motion.div 
-            className="md:w-5/12"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-xl blur-lg opacity-30"></div>
-              <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 shadow-2xl border border-white/20 relative">
-                <div className="flex items-center gap-2 text-sm mb-4">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                  <span className="ml-2 text-blue-100">System Architecture Map</span>
+                </Link>
+              </div>
+            </div>
+            {/* Right: Visual Representation */}
+            <div className="hidden lg:flex flex-1 justify-center items-center">
+              <div className="relative w-[480px] min-h-[500px] bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-blue-100 flex flex-col justify-start items-center gap-y-8 px-8 pt-16 pb-10 overflow-visible transition-all duration-500 ease-in-out">
+                <div
+                  className="absolute top-3.5 left-8  bg-blue-700  text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse"
+                  style={{ zIndex: 50 }}
+                >
+                  <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                  <span className="text-xs font-semibold">
+                    AI Analyzing Repository
+                  </span>
                 </div>
-                
-                <div className="space-y-3">
-                  <motion.div 
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 0.7, delay: 0.5 }}
-                    className="h-6 bg-white/20 rounded"
-                  ></motion.div>
-                  
-                  <div className="h-40 bg-white/20 rounded w-full relative overflow-hidden">
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.8 }}
-                      className="absolute inset-0 flex items-center justify-center"
-                    >
-                      {/* Simple code architecture visualization */}
-                      <svg width="200" height="120" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="70" y="10" width="60" height="30" rx="4" fill="rgba(255,255,255,0.3)" />
-                        <rect x="20" y="70" width="50" height="30" rx="4" fill="rgba(255,255,255,0.3)" />
-                        <rect x="130" y="70" width="50" height="30" rx="4" fill="rgba(255,255,255,0.3)" />
-                        <rect x="75" y="70" width="50" height="30" rx="4" fill="rgba(255,255,255,0.5)" />
-                        <path d="M100 40L100 70" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
-                        <path d="M100 70L45 70" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
-                        <path d="M100 70L155 70" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
-                      </svg>
-                    </motion.div>
+                {/* AI Bot Icon  */}
+                <div
+                  className="absolute -top-16 right-8 bg-blue-700 rounded-full p-5 shadow-lg flex items-center justify-center animate-bounce"
+                  style={{ zIndex: 40 }}
+                >
+                  <Bot className="w-9 h-9 text-white" />
+                </div>
+
+                {/* Main dashboard card */}
+                <div className="w-full rounded-2xl bg-gradient-to-br from-blue-100/80 to-white/80 p-8 shadow-xl border border-blue-50 relative z-20 flex flex-col gap-5 animate-fade-in delay-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-blue-700 font-bold text-base">
+                      /src/components/
+                    </span>
+                    <span className="ml-auto text-xs text-blue-400">
+                      AI Summary
+                    </span>
                   </div>
-                  
-                  <motion.div 
-                    initial={{ width: "0%" }}
-                    animate={{ width: "75%" }}
-                    transition={{ duration: 0.7, delay: 1.1 }}
-                    className="h-6 bg-white/20 rounded"
-                  ></motion.div>
-                  
-                  <div className="flex gap-3">
-                    <motion.div 
-                      initial={{ width: "0%" }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 0.7, delay: 1.3 }}
-                      className="h-6 bg-white/20 rounded w-1/2"
-                    ></motion.div>
-                    
-                    <motion.div 
-                      initial={{ width: "0%" }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 0.7, delay: 1.5 }}
-                      className="h-6 bg-white/20 rounded w-1/2"
-                    ></motion.div>
+                  <div className="flex gap-3 items-center mb-2">
+                    <span className="rounded bg-blue-200/60 px-2.5 py-0.5 text-xs text-blue-900">
+                      Component
+                    </span>
+                    <span className="rounded bg-indigo-100/60 px-2.5 py-0.5 text-xs text-indigo-800">
+                      Hooks
+                    </span>
+                    <span className="rounded bg-gray-100/60 px-2.5 py-0.5 text-xs text-gray-700">
+                      Docs
+                    </span>
                   </div>
+                  <div className="text-sm text-blue-900/90 font-mono leading-relaxed whitespace-pre-wrap">
+                    {`// This component fetches and displays
+// AI-generated documentation for your codebase.`}
+                  </div>
+                </div>
+
+                {/* File tree card  */}
+                <div
+                  className="absolute bottom-10 left-6 w-72 bg-white/90 border border-blue-100 rounded-xl shadow-lg p-4 flex flex-col gap-2 animate-slide-up"
+                  style={{ zIndex: 25 }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-400" />
+                    <span className="text-xs text-blue-900 font-semibold">
+                      File Tree
+                    </span>
+                  </div>
+                  <ul className="text-xs text-blue-700 font-mono mt-1 ml-2 space-y-1">
+                    <li>src/</li>
+                    <li className="ml-3">components/</li>
+                    <li className="ml-6 text-blue-900 font-bold">
+                      HeroSection.tsx
+                    </li>
+                    <li className="ml-3">utils/</li>
+                  </ul>
+                </div>
+
+                {/* AI Graph  */}
+                <div
+                  className="absolute bottom-10 right-6 flex flex-col items-center animate-slide-up"
+                  style={{ zIndex: 15 }}
+                >
+                  <svg width="120" height="70" fill="none">
+                    <circle
+                      cx="25"
+                      cy="38"
+                      r="10"
+                      fill="#6366f1"
+                      opacity="0.2"
+                    />
+                    <circle
+                      cx="60"
+                      cy="20"
+                      r="10"
+                      fill="#6366f1"
+                      opacity="0.5"
+                    />
+                    <circle
+                      cx="100"
+                      cy="50"
+                      r="10"
+                      fill="#6366f1"
+                      opacity="0.8"
+                    />
+                    <line
+                      x1="25"
+                      y1="38"
+                      x2="60"
+                      y2="20"
+                      stroke="#6366f1"
+                      strokeWidth="3"
+                      opacity="0.4"
+                    />
+                    <line
+                      x1="60"
+                      y1="20"
+                      x2="100"
+                      y2="50"
+                      stroke="#6366f1"
+                      strokeWidth="3"
+                      opacity="0.7"
+                    />
+                  </svg>
+                  <span className="text-[11px] text-blue-400 mt-1">
+                    AI Graph
+                  </span>
                 </div>
               </div>
             </div>
-          </motion.div>
+            {/* yaha tak */}
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </>
   );
 };
 

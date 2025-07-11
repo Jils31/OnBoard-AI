@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import LoadingState from '@/components/LoadingState';
+import { githubService } from '@/services/GitHubService';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();

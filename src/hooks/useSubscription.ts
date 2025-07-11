@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,25 +11,37 @@ export const useSubscription = () => {
   } | null>(null);
 
   const fetchSubscriptionInfo = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (!user) return null;
+    if (!user) {
+      console.warn("No user found", userError);
+      return null;
+    }
 
-    // Fetch subscription type
+    console.log("User ID:", user.id);
+
     const { data: subscriptionData, error: subscriptionError } = await supabase
       .from('subscriptions')
       .select('plan_type')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (subscriptionError) {
       console.error('Subscription fetch error:', subscriptionError);
       return null;
     }
 
-    // Get analysis counts and limits
+    if (!subscriptionData) {
+      console.warn('No subscription found for user:', user.id);
+      return {
+        plan_type: 'free' as PlanType,
+        analysisCounts: 0,
+        analysisLimit: 5,
+      };
+    }
+
     const { data: analysisCountData, error: analysisCountError } = await supabase
       .rpc('get_user_analysis_count', { user_uuid: user.id });
 
@@ -42,27 +53,31 @@ export const useSubscription = () => {
       return null;
     }
 
-    // Validate that the plan_type is one of the expected values
     const planType = subscriptionData.plan_type;
     if (planType !== 'free' && planType !== 'premium' && planType !== 'unlimited') {
       console.error('Invalid plan type:', planType);
       return null;
     }
 
+    console.log("Returning subscription info:", {
+      plan_type: planType,
+      analysisCounts: analysisCountData ?? 0,
+      analysisLimit: subscriptionLimitData ?? 0,
+    });
+
     return {
       plan_type: planType as PlanType,
-      analysisCounts: analysisCountData,
-      analysisLimit: subscriptionLimitData
+      analysisCounts: analysisCountData ?? 0,
+      analysisLimit: subscriptionLimitData ?? 0,
     };
   };
 
   useEffect(() => {
-    const loadSubscription = async () => {
-      const subscriptionInfo = await fetchSubscriptionInfo();
-      setSubscription(subscriptionInfo);
+    const load = async () => {
+      const result = await fetchSubscriptionInfo();
+      setSubscription(result);
     };
-
-    loadSubscription();
+    load();
   }, []);
 
   return subscription;
