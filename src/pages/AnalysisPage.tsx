@@ -14,7 +14,7 @@ import TutorialView from "@/components/analysis/TutorialView";
 import ASTViewer from "@/components/analysis/ASTViewer";
 import CodebaseChatView from "@/components/analysis/CodebaseChatView";
 import DocumentationView from "@/components/analysis/DocumentationView";
-import LoadingState from "@/components/LoadingState";
+import RepositoryAnalysisLoading from "@/components/RepositoryAnalysisLoading";
 import { useToast } from "@/hooks/use-toast";
 import QuizView from '@/components/analysis/QuizView';
 
@@ -197,7 +197,7 @@ const AnalysisPage = () => {
   }, [repoUrl, role, toast]);
   
   if (isLoading) {
-    return <LoadingState repo={repoUrl} progress={analysisProgress} />;
+    return <RepositoryAnalysisLoading repo={repoUrl} progress={analysisProgress} />;
   }
   
   if (error) {

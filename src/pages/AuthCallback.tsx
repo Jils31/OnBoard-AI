@@ -56,12 +56,7 @@ const AuthCallback: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <LoadingState repo="" progress={{
-        structure: true,
-        criticalPaths: false,
-        dependencies: false,
-        tutorials: false
-      }} />
+      <LoadingState message="Completing authentication..." />
     </div>
   );
 };

@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import LoadingState from "@/components/LoadingState";
 
 const Auth = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleGitHubSignIn = async () => {
+    setIsLoading(true);
     try {
       const redirectUrl = new URL(
         "/auth/callback",
@@ -33,8 +36,14 @@ const Auth = () => {
         description: "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return <LoadingState message="Signing in with GitHub..." />;
+  }
 
   return (
     <div className="min-h-screen flex">
