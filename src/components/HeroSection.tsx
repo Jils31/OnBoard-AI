@@ -48,24 +48,37 @@ const HeroSection = () => {
                 code reviews, and architecture understanding.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
-                <Link to="/auth">
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-blue-900 hover:bg-blue-800 text-white font-semibold px-7 py-3 text-lg rounded-xl shadow"
-                  >
-                    Try for Free <ArrowRight size={16} />
-                  </Button>
-                </Link>
-                <Link to="/auth">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="gap-2 border-blue-900 text-blue-900 font-semibold px-7 py-3 text-lg rounded-xl shadow hover:bg-blue-50 flex items-center"
-                  >
-                    <Github className="w-5 h-5 mr-2" />
-                    Sign in with GitHub
-                  </Button>
-                </Link>
+                {user ? (
+                  <Link to="/dashboard">
+                    <Button
+                      size="lg"
+                      className="gap-2 bg-blue-900 hover:bg-blue-800 text-white font-semibold px-7 py-3 text-lg rounded-xl shadow"
+                    >
+                      Go to Dashboard <ArrowRight size={16} />
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/auth">
+                      <Button
+                        size="lg"
+                        className="gap-2 bg-blue-900 hover:bg-blue-800 text-white font-semibold px-7 py-3 text-lg rounded-xl shadow"
+                      >
+                        Try for Free <ArrowRight size={16} />
+                      </Button>
+                    </Link>
+                    <Link to="/auth">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="gap-2 border-blue-900 text-blue-900 font-semibold px-7 py-3 text-lg rounded-xl shadow hover:bg-blue-50 flex items-center"
+                      >
+                        <Github className="w-5 h-5 mr-2" />
+                        Sign in with GitHub
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
             {/* Right: Visual Representation */}

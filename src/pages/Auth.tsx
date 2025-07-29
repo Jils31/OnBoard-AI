@@ -1,252 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { GithubIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "Sign up failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Sign up successful",
-          description: "Please check your email for verification link.",
-        });
-        // Navigate to the home page after successful signup
-        navigate('/');
-      }
-    } catch (error) {
-      toast({
-        title: "Sign up failed",
-        description: "An unexpected error occurred.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Sign in successful",
-          description: "Welcome back!",
-        });
-        // Navigate to the home page after successful login
-        navigate('/');
-      }
-    } catch (error) {
-      toast({
-        title: "Sign in failed",
-        description: "An unexpected error occurred.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGitHubSignIn = async () => {
     try {
-      // Use the absolute URL of your site for the redirect
-      const redirectUrl = new URL('/auth/callback', window.location.origin).toString();
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
+      const redirectUrl = new URL(
+        "/auth/callback",
+        window.location.origin
+      ).toString();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "github",
         options: {
-          scopes: 'repo read:user user:email',
-          redirectTo: redirectUrl
-        }
+          scopes: "repo read:user user:email",
+          redirectTo: redirectUrl,
+        },
       });
-
       if (error) {
         toast({
           title: "GitHub Sign In Failed",
           description: error.message,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Sign in failed",
         description: "An unexpected error occurred.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Onboarding Buddy</CardTitle>
-          <CardDescription className="text-center">
-            Sign in to analyze repositories and accelerate your development
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <Button 
-              variant="outline" 
-              onClick={handleGitHubSignIn}
-              className="w-full gap-2"
-            >
-              <GithubIcon className="h-5 w-5" /> {/* Changed from GitHubLogoIcon */}
-              Continue with GitHub
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
+    <div className="min-h-screen flex">
+      {/* Left side: background image and permissions at the bottom */}
+      <div
+        className="hidden md:flex flex-col justify-between w-1/2 bg-cover bg-center p-10"
+        style={{
+          backgroundImage: "url(./mohammad-rahmani-DwDZ5mgwhsc-unsplash.jpg)",
+        }}
+      >
+        <div className="flex-1" />
+        <div>
+          <h2 className="text-white text-2xl font-bold mb-8 drop-shadow-lg">
+            This app will be able to:
+          </h2>
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 text-white shadow-md shadow-white/10">
+              <div className="text-xl mb-2">⚡</div>
+              <div className="font-semibold">Instant Repo Summaries</div>
+              <div className="text-sm opacity-80">
+                Get the big picture in minutes
               </div>
             </div>
 
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input 
-                      id="signin-email" 
-                      type="email" 
-                      placeholder="email@example.com" 
-                      required 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input 
-                      id="signin-password" 
-                      type="password" 
-                      required 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-fullname">Full Name</Label>
-                    <Input 
-                      id="signup-fullname" 
-                      type="text" 
-                      placeholder="John Doe" 
-                      required 
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input 
-                      id="signup-email" 
-                      type="email" 
-                      placeholder="email@example.com" 
-                      required 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input 
-                      id="signup-password" 
-                      type="password" 
-                      required 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Creating account..." : "Sign Up"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+            <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 text-white shadow">
+              <div className="text-xl mb-2">🧭</div>
+              <div className="font-semibold">Codebase Navigation</div>
+              <div className="text-sm opacity-80">
+                Understand structure and flow effortlessly
+              </div>
+            </div>
+            <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 text-white shadow">
+              <div className="text-xl mb-2">🤖</div>
+              <div className="font-semibold">AI-Powered Insights</div>
+              <div className="text-sm opacity-80">
+                Highlights key files, logic, and roles
+              </div>
+            </div>
+            <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 text-white shadow">
+              <div className="text-xl mb-2">📄</div>
+              <div className="font-semibold">Smart Docs & FAQs</div>
+              <div className="text-sm opacity-80">
+                Auto-generate onboarding docs & answers
+              </div>
+            </div>
           </div>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </p>
-        </CardFooter>
-      </Card>
+          <div className="text-white text-xs opacity-80">
+            &copy; {new Date().getFullYear()} OnBoard AI
+          </div>
+        </div>
+      </div>
+      {/* Right side: login form */}
+      <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white dark:bg-gray-900 px-8 py-12">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2">OnBoard AI</h1>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              Sign in to analyze repositories and accelerate your development
+            </p>
+          </div>
+          <Button
+            onClick={handleGitHubSignIn}
+            className="w-full gap-2 text-lg py-6 rounded-full bg-black text-white hover:bg-gray-800"
+          >
+            <GithubIcon className="h-6 w-6" />
+            Continue with GitHub
+          </Button>
+          <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
+            By continuing, you agree to emergent{" "}
+            <a href="#" className="underline">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="#" className="underline">
+              Privacy Policy
+            </a>
+            .
+          </div>
+          <div className="flex flex-col items-center mt-8">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span>LOG IN SECURED BY GITHUB OAUTH</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -346,21 +346,7 @@ const RepositoryForm = () => {
         </TabsContent>
       </Tabs>
       
-      <div className="mt-6">
-        <label className="text-sm font-medium mb-2 block">Select Your Role</label>
-        <Select value={role} onValueChange={setRole}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="frontend">Frontend Developer</SelectItem>
-            <SelectItem value="backend">Backend Developer</SelectItem>
-            <SelectItem value="full-stack">Full Stack Developer</SelectItem>
-            <SelectItem value="devops">DevOps Engineer</SelectItem>
-            <SelectItem value="mobile">Mobile Developer</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      
       
       <Button 
         type="submit" 
