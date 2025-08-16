@@ -50,11 +50,6 @@ const FAQsection: React.FC = () => {
                 answer:
                   "Most repositories are analyzed within minutes. Larger codebases may take a bit longer, depending on size and complexity, but our system is optimized for quick turnarounds.",
               },
-              {
-                question: "Can I upgrade or downgrade my plan anytime?",
-                answer:
-                  "Yes, you can upgrade or downgrade your subscription at any time. Plan changes take effect at the beginning of your next billing cycle.",
-              },
             ].map((faq, index) => (
               <AccordionItem
                 key={index}

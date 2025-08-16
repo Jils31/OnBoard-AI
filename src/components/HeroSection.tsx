@@ -27,12 +27,12 @@ const HeroSection = () => {
           <div className="flex flex-col-reverse lg:flex-row items-center gap-12">
             {/* Left: Text Content */}
             <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left">
-              <Badge
+              {/* <Badge
                 className="mb-6 px-4 py-1 text-sm bg-blue-50 text-blue-900 border border-blue-200 shadow-none rounded-full"
                 variant="secondary"
               >
                 PRO PLAN – NOW AVAILABLE
-              </Badge>
+              </Badge> */}
               <h1 className="text-5xl md:text-6xl font-extrabold text-blue-900 mb-6 leading-tight drop-shadow-sm">
                 Understand codebases in{" "}
                 <span className="relative inline-block">

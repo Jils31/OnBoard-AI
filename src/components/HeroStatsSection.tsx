@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import {Link} from 'react-router-dom';
 
 const stats = [
 	{ value: "10+", label: "Repositories Analyzed" },
@@ -72,12 +73,12 @@ const HeroStatsSection: React.FC = () => {
 							</motion.div>
 						))}
 					</div>
-					<a
-						href="#"
-						className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-700 text-white font-semibold shadow hover:bg-blue-800 transition w-max mt-2"
+					<Link
+						to="/auth"
+						className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#1E3A8A] text-white font-semibold shadow hover:bg-blue-800 transition w-max mt-2"
 					>
 						Get Started <ArrowRight size={18} />
-					</a>
+					</Link>
 				</div>
 			</div>
 		</section>

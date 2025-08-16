@@ -15,8 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { githubService, GitHubService } from "@/services/GitHubService";
 import { AlertCircle, Loader, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useSubscription } from "@/hooks/useSubscription";
-import { SubscriptionAlert } from "@/components/SubscriptionAlert";
+// import { useSubscription } from "@/hooks/useSubscription";
+// import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { RepositoryAnalysisService } from "@/services/RepositoryAnalysisService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -48,7 +48,8 @@ const RepositoryForm = () => {
   const { toast } = useToast();
   const { session } = useAuth();
 
-  const subscription = useSubscription();
+  // const subscription = useSubscription();
+  const subscription = true
   const isGitHubTokenValid = useGitHubToken();
 
   // Fetch GitHub token and repositories on component mount
@@ -124,15 +125,15 @@ const RepositoryForm = () => {
       return;
     }
 
-    if (subscription.analysisCounts >= subscription.analysisLimit) {
-      toast({
-        title: "Analysis Limit Reached",
-        description:
-          "You have reached your monthly analysis limit. Please upgrade your plan.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // if (subscription.analysisCounts >= subscription.analysisLimit) {
+    //   toast({
+    //     title: "Analysis Limit Reached",
+    //     description:
+    //       "You have reached your monthly analysis limit. Please upgrade your plan.",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     setIsAnalyzing(true);
     setConnectError(null);
@@ -245,13 +246,13 @@ const RepositoryForm = () => {
 
   return (
     <form onSubmit={handleSubmit}>
-      {subscription && (
+      {/* {subscription && (
         <SubscriptionAlert
           currentPlan={subscription.plan_type}
           analysisCounts={subscription.analysisCounts}
           analysisLimit={subscription.analysisLimit}
         />
-      )}
+      )} */}
 
       <Tabs defaultValue={githubToken ? "repos" : "url"} className="w-full">
         <TabsList className="grid grid-cols-2 mb-6">
@@ -395,8 +396,7 @@ const RepositoryForm = () => {
         disabled={
           (!repoUrl && !selectedRepo) ||
           isAnalyzing ||
-          (subscription &&
-            subscription.analysisCounts >= subscription.analysisLimit)
+          (subscription)
         }
       >
         {isAnalyzing ? (

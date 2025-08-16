@@ -8,8 +8,8 @@ import { FileText, Clock, PlusCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
-import { useSubscription } from "@/hooks/useSubscription";
-import { SubscriptionAlert } from "@/components/SubscriptionAlert";
+// import { useSubscription } from "@/hooks/useSubscription";
+// import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import RepositoryForm from "@/components/RepositoryForm";
 
 interface AnalyzedRepo {
@@ -22,7 +22,7 @@ interface AnalyzedRepo {
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const subscription = useSubscription();
+  // const subscription = useSubscription();
   const navigate = useNavigate();
   const [recentRepos, setRecentRepos] = useState<AnalyzedRepo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +70,7 @@ const Dashboard = () => {
           </p>
         </div>
         
-        {subscription && (
+        {/* {subscription && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border">
             <p className="text-sm font-medium mb-1">
               Current Plan: <span className="font-bold capitalize">{subscription.plan_type}</span>
@@ -86,16 +86,16 @@ const Dashboard = () => {
               </Link>
             )}
           </div>
-        )}
+        )} */}
       </div>
       
-      {subscription && (
+      {/* {subscription && (
         <SubscriptionAlert 
           currentPlan={subscription.plan_type} 
           analysisCounts={subscription.analysisCounts} 
           analysisLimit={subscription.analysisLimit}
         />
-      )}
+      )} */}
       
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
@@ -166,7 +166,7 @@ const Dashboard = () => {
         </div>
         
         <div>
-          <Card className="mb-6">
+          {/* <Card className="mb-6">
             <CardHeader>
               <CardTitle>Your Subscription</CardTitle>
             </CardHeader>
@@ -227,7 +227,7 @@ const Dashboard = () => {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
           
           <Card>
             <CardHeader>
@@ -235,12 +235,12 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Button variant="ghost" className="w-full justify-start" asChild>
+                {/* <Button variant="ghost" className="w-full justify-start" asChild>
                   <Link to="/pricing">
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Pricing Plans
                   </Link>
-                </Button>
+                </Button> */}
                 <Button variant="ghost" className="w-full justify-start" asChild>
                   <Link to="/history">
                     <Clock className="h-4 w-4 mr-2" />

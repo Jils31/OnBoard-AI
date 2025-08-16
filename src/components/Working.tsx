@@ -81,7 +81,7 @@ const Working: React.FC = () => {
 
         <div className="flex justify-center mt-16">
           <Link to={user ? "/dashboard" : "/auth"}>
-            <Button size="lg" className="gap-2">
+            <Button size="lg" className="gap-2 bg-[#1E3A8A]">
               Get Started <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

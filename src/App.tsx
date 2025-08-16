@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,12 +8,15 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import NavBar from "./components/NavBar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Pricing from "./pages/Pricing";
+// import Pricing from "./pages/Pricing";
 import History from "./pages/History";
 import AnalysisPage from "./pages/AnalysisPage";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import AboutUs from "./pages/AboutUs";
+import Features from "./components/Features";
+import FAQsection from "./components/FAQsection";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +29,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<><NavBar /><Index /></>} />
-            <Route path="/pricing" element={<><NavBar /><Pricing /></>} />
+            {/* <Route path="/pricing" element={<><NavBar /></>} /> */}
+            <Route path="/about" element={<><NavBar /><AboutUs /></>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
@@ -37,6 +40,8 @@ const App = () => (
               <Route path="/analysis" element={<AnalysisPage />} />
             </Route>
             
+            <Route path='/features' element={<Features />} />
+            <Route path='/faq' element={<FAQsection />}/>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

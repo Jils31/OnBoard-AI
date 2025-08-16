@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { useSubscription } from '@/hooks/useSubscription';
+// import { useSubscription } from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
 import { Menu, X, LogOut, User } from 'lucide-react';
 import {
@@ -16,7 +16,7 @@ import {
 
 const NavBar: React.FC = () => {
   const { user, signOut } = useAuth();
-  const subscription = useSubscription();
+  // const subscription = useSubscription();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -45,8 +45,8 @@ const NavBar: React.FC = () => {
               </Link>
             </>
           )}
-          <Link to="/pricing" className={`hover:text-blue-700 transition ${location.pathname === '/pricing' ? 'text-blue-700' : ''}`}>
-            Pricing
+          <Link to="/about" className={`hover:text-blue-700 transition ${location.pathname === '/pricing' ? 'text-blue-700' : ''}`}>
+            About Us
           </Link>
         </nav>
 
@@ -57,7 +57,7 @@ const NavBar: React.FC = () => {
               <Badge
                 className={`rounded-full px-3 py-1 text-xs font-medium border border-blue-200 text-blue-800 bg-blue-50`}
               >
-                {subscription?.plan_type.charAt(0).toUpperCase() + subscription?.plan_type.slice(1) || "Free"} Plan
+                Free Plan
               </Badge>
 
               <DropdownMenu>
@@ -70,7 +70,7 @@ const NavBar: React.FC = () => {
                   <DropdownMenuLabel className="text-blue-900 font-semibold">{user.email}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <Link to="/dashboard"><DropdownMenuItem>Dashboard</DropdownMenuItem></Link>
-                  <Link to="/pricing"><DropdownMenuItem>Subscription</DropdownMenuItem></Link>
+                  {/* <Link to="/pricing"><DropdownMenuItem>Subscription</DropdownMenuItem></Link> */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="w-4 h-4 mr-2" /> Sign Out
