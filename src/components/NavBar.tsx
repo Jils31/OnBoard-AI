@@ -117,7 +117,9 @@ const NavBar: React.FC = () => {
               <Link to="/history" onClick={() => setIsMenuOpen(false)} className="block text-blue-900 font-medium">History</Link>
             </>
           )}
-          <Link to="/pricing" onClick={() => setIsMenuOpen(false)} className="block text-blue-900 font-medium">Pricing</Link>
+          {/* <Link to="/pricing" onClick={() => setIsMenuOpen(false)} className="block text-blue-900 font-medium">Pricing</Link> */}
+            <Link to="/about" onClick={() => setIsMenuOpen(false)} className="block text-blue-900 font-medium">About Us</Link>
+
 
           <div className="border-t pt-2 mt-2">
             {user ? (
