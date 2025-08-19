@@ -49,7 +49,7 @@ const RepositoryForm = () => {
   const { session } = useAuth();
 
   // const subscription = useSubscription();
-  const subscription = true
+  const subscription = true;
   const isGitHubTokenValid = useGitHubToken();
 
   // Fetch GitHub token and repositories on component mount
@@ -345,7 +345,13 @@ const RepositoryForm = () => {
                         }`}
                         onClick={() => setSelectedRepo(repo.full_name)}
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="radio"
+                            checked={selectedRepo === repo.full_name}
+                            readOnly
+                            className="w-4 h-4 text-blue-600"
+                          />
                           <div>
                             <p className="font-medium">{repo.name}</p>
                             <p className="text-xs text-gray-500">
@@ -393,11 +399,7 @@ const RepositoryForm = () => {
       <Button
         type="submit"
         className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
-        disabled={
-          (!repoUrl && !selectedRepo) ||
-          isAnalyzing ||
-          (subscription)
-        }
+        disabled={(!repoUrl && !selectedRepo) || isAnalyzing || !subscription}
       >
         {isAnalyzing ? (
           <>
